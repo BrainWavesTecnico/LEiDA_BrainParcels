@@ -1,149 +1,215 @@
 function LEiDA_Start
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                  LEADING EIGENVECTOR DYNAMICS ANALYSIS            
+%                  LEADING EIGENVECTOR DYNAMICS ANALYSIS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% This function serves to run LEiDA on any given dataset. 
+% This function serves to run LEiDA on any given dataset.
 %
-% Since we do not know a priori the optimal number of FC states that 
-% differentiante between conditions, this function analyzes the solutions 
+% Since we do not know a priori the optimal number of FC states that
+% differentiate between conditions, this function analyzes the solutions
 % obtained for different numbers of FC states (K).
 %
-% After analyszing the output figures saved in folder LEiDA_Results, 
-% the user can then choose the optimal number of FC states for subsequent 
-% analysis using the functions LEiDA_AnalysysK.m and LEiDA_AnalysisCentroid.m
-% 
-% This function contains three sections: 
+% After analysing the output figures saved in the results folder, the user
+% can then choose the optimal number of FC states for subsequent analysis
+% using the functions LEiDA_AnalysisK.m and LEiDA_AnalysisCentroid.m
+%
+% This function contains three sections:
 %      (A) User defines the parameters and properties of the study.
-%      (B) Run LEiDA and statistics.
-%      (C) Generate and save figures.
+%      (B) Compute the leading eigenvectors of all scans and cluster them.
+%      (C) Assign the scans to conditions, compute statistics and figures.
 %
 % Start by reading the README.md file.
 %
 % A: User input parameters
 % B: Run Leading Eigenvector Dynamics Analysis:
-%    - Compute the leading eigenvectors for all participants
-%    - Cluster the leading eigenvectors of all participants
-%    - Compute statistics to compare across conditions.
-% C: Figures
-%    - Analysis of Fractional Occupancy values
-%    - Analysis of Dwell Time values
+%    - (Optional) Parcellate data in MNI space
+%    - Compute the leading eigenvectors for all scans
+%    - Cluster the leading eigenvectors of all scans
+% C: Study design, statistics and figures
+%    - Assign each scan to a condition (from file names or metadata table)
+%    - Fractional occupancy and hypothesis tests between conditions
 %    - Pyramid of FC states
 %
 % Tutorial: README.md
-% Version:  V1.2, June 2023
+% Version:  V2.0, October 2026
 % Authors:  Joana Cabral, University of Minho, joanacabral@med.uminho.pt
 %           Miguel Farinha, ICVS/2CA-Braga, miguel.farinha@ccabraga.pt
 
 %% A: STUDY PARAMETERS
 
-% Directory of the LEiDA toolbox folder:
-LEiDA_directory = '/Users/user/Documents/Research/CognitiveDecline/DONAU/LEiDA_Toolbox_May2025/';
-% Directory of the folder with the parcellated neuroimaging data:
-Data_directory = '/Users/user/Documents/Research/CognitiveDecline/DONAU/parcellated_data/';
-% Give a name of the run to be used to create the folder to save the results:
+% ------------------------------ DIRECTORIES ------------------------------
+% Folder with the input data. Files are searched in this folder and in all
+% its subfolders (e.g. sub-XXX/ses-YYY/):
+Data_directory = '/Users/user/Documents/Research/MIGRAINE/func_task-rest/data/parcellated_data/';
+% Folder where the results will be saved (a subfolder named after run_name
+% is created inside it):
+Results_directory = '/Users/user/Documents/Research/MIGRAINE/LEiDA_Results/';
+% Name of the run, used to name the folder with the results:
+run_name = 'MIGRAINE_AAL90';
 
+% ------------------------------ INPUT DATA -------------------------------
+% Space of the input data:
+%   'parcellated' : one file per scan with the time series of each area
+%   'MNI'         : one 4D NIfTI file per scan in MNI 2mm space, which is
+%                   first parcellated using the atlas in Parcellation
+Data_space = 'parcellated';
+% Files to use (* is a wildcard). Only files matching this pattern are
+% considered, e.g. '*BOLDpreprocessed_rp_mo_csf_wm_nui-parcellatedAAL90.mat'
+% for parcellated data or '*.nii.gz' for data in MNI space:
+File_pattern = '*BOLDpreprocessed_rp_mo_csf_wm_nui-parcellatedAAL90.mat';
+% Orientation of the parcellated data ('AreasxTime', 'TimexAreas' or
+% 'auto' to detect it from the number of areas in the atlas):
+Data_orientation = 'AreasxTime';
+% Name of the variable with the time series inside the .mat files
+% ('' to detect it automatically):
+Data_variable = '';
+% Optional text file with the IDs of the subjects to include (one per
+% line, e.g. sub-control019). Leave '' to use all files matching
+% File_pattern:
+Subject_list = '';
 
+% ----------------------------- PARCELLATION ------------------------------
+% Atlas used to parcellate the data. Must be one of the atlases available
+% in ParcelsMNI2mm.mat to parcellate data in MNI space and to render the FC
+% states in the brain: 'AAL116', 'AAL120', 'dbs80', 'Desikan',
+% 'Schaefer100', 'glasser360'. Set to '' if the data were parcellated with
+% another atlas (the brain renderings are then skipped).
+Parcellation = 'AAL116';
+% Number of areas to consider (the first N_areas areas of the data). Leave
+% empty [] to use all areas in the data (or all parcels of the atlas for
+% data in MNI space). E.g. 90 to use only the cerebrum areas of AAL116.
+N_areas = 90;
 
-run_names = {'DONAU_1_Schaefer_100_cortical';
-             'DONAU_2_Schaefer_119_cortical_subcortical';
-             'DONAU_3_Desikan_70_cortical';
-             'DONAU_4__Desikan_89_cortical_subcortical';
-             'DONAU_5_Glasser_360_cortical';
-             'DONAU_6_Glasser_379_cortical_subcortical'};
-
-for run=6
-
-run_name = run_names{run};
-
-if run == 1 || run == 2
-    Parcellation = 'Schaefer100';
-    N_areas=100;
-elseif run == 3 || run == 4
-    Parcellation = 'Desikan';
-    N_areas=70;
-elseif run == 5 || run == 6
-    Parcellation = 'Glasser';
-    N_areas=360;
-end
-
-if run == 2 || run == 4 || run == 6
-    Subcortical = 1;
-else
-    Subcortical = 0;
-end
-
-% Parcellation applied to the imaging data (see tutorial):
-% Parcellation = 'Schaefer100'; 
-% Parcellation = 'glasser360'; 
-
-
-% Repetition time (TR) of the fMRI data (if unknown set to 1):
-TR = 3;
-% Maximum number of TRs for all fMRI sessions:
-Tmax = 240;
+% --------------------------- SIGNAL PROCESSING ---------------------------
+% Repetition time (TR) of the fMRI data in seconds (if unknown set to 1):
+TR = 2;
 % Apply temporal filtering to data (0: no; 1: yes)
-apply_filter = 0; 
+apply_filter = 0;
 % Lowpass frequency of filter (default 0.1):
 flp = 0.1;
 % Highpass frequency of filter (default 0.01):
 fhi = 0.01;
-% For the statistics: 
+
+% ------------------------------ CLUSTERING -------------------------------
+% Range of numbers of FC states (K) to compute:
+rangeK = 2:20;
+
+% ----------------------------- STUDY DESIGN ------------------------------
+% How to assign each scan to a condition:
+%   'filename' : a scan belongs to the condition whose tag (in
+%                Condition_tags) is found in its file path, e.g.
+%                Condition_tags = {'sub-control','sub-patient'}
+%   'metadata' : the condition is read from a table (.csv or .xlsx) with
+%                one row per subject (or per subject and session)
+%   'none'     : no conditions (only eigenvectors, clustering and centroids)
+Condition_source = 'metadata';
+% Metadata table (only used if Condition_source = 'metadata'). In
+% spreadsheets with several sheets, all sheets are read and the name of
+% the sheet is available as a column named 'sheet':
+Metadata_file = '/Users/user/Documents/Research/MIGRAINE/Demographic_Clinical_Data.xlsx';
+% Column with the subject IDs (as found in the folder/file names, e.g.
+% sub-control019):
+Metadata_subject_column = 'subject';
+% Column with the session IDs (e.g. ses-midcycle). Leave '' if there is
+% only one scan per subject:
+Metadata_session_column = 'session';
+% Column with the condition of each scan:
+Condition_column = 'sheet';
+% Conditions to compare. With 'filename', the tags found in the file
+% paths; with 'metadata', the values of Condition_column. Scans not
+% belonging to any of these conditions are left out of the statistics.
+% Leave {} with 'metadata' to use all values found in Condition_column.
+Condition_tags = {'controls','patients'};
+
+% ------------------------------ STATISTICS -------------------------------
 % Choose 0 (unpaired) if subjects in different conditions are not the
 % same; or 1 (paired) if subjects are the same across conditions.
 Paired_tests = 0;
-% Number of permutations. For the first analysis to be relatively quick, 
+% Number of permutations. For the first analysis to be relatively quick,
 % choose like 500, but then increase to 10000 to increase the precision of
-% the final statistical results for publication. 
-n_permutations=10000;
-% Number of bootstraps. For the first analysis to be relatively quick, 
-% choose 1, but then increase for final results to be more precise. 
-n_bootstraps=1;
+% the final statistical results for publication.
+n_permutations = 500;
+% Number of bootstraps within each permutation. For the first analysis to
+% be relatively quick, choose 1, but then increase (e.g. 500) for the
+% final results to be more precise.
+n_bootstraps = 1;
+
+% -------------------------------- FIGURES --------------------------------
 % Direction to plot the FC states/brain ('SideView' or 'TopView'):
 CortexDirection = 'TopView';
+
+% ------------------------------ STEPS TO RUN -----------------------------
+% Set to 0 to skip steps already computed in a previous run (e.g. to test
+% a new study design without recomputing the eigenvectors and clusters):
+Run_eigenvectors = 1;
+Run_clustering = 1;
 
 % AFTER FILLING IN THE INPUT PARAMETERS:
 % ||||||||||||||||||||||||||||||| CLICK RUN |||||||||||||||||||||||||||||||
 
-% Go to the directory containing the LEiDA functions
-cd(LEiDA_directory)
+% Add the LEiDA functions (the folder containing this file) to the path
+LEiDA_directory = fileparts(mfilename('fullpath'));
+addpath(genpath(LEiDA_directory))
+
 % Create a directory to store the results from the current LEiDA run
-leida_results = [LEiDA_directory 'LEiDA_Results_' run_name '/'];
+leida_results = [fullfile(Results_directory, ['LEiDA_Results_' run_name]) filesep];
 if ~exist(leida_results, 'dir')
     mkdir(leida_results);
 end
-addpath(genpath(LEiDA_directory))
+
+% Number of parcels in the atlas ([] if not available in ParcelsMNI2mm)
+N_parcels = Atlas_Nparcels(Parcellation);
+if isempty(N_areas) && strcmpi(Data_space,'MNI')
+    N_areas = N_parcels;
+end
+
+% Save the parameters of this run for reference and for later steps
+save([leida_results 'LEiDA_Parameters.mat'], 'Data_directory', 'Data_space', ...
+     'File_pattern', 'Data_orientation', 'Data_variable', 'Subject_list', ...
+     'Parcellation', 'N_areas', 'TR', 'apply_filter', 'flp', 'fhi', 'rangeK', ...
+     'Condition_source', 'Metadata_file', 'Metadata_subject_column', ...
+     'Metadata_session_column', 'Condition_column', 'Condition_tags', ...
+     'Paired_tests', 'n_permutations', 'n_bootstraps', 'CortexDirection');
 
 %% B: RUN LEADING EIGENVECTOR DYNAMICS ANALYSIS
 
-% Compute the leading eigenvectors of the data
-LEiDA_data(Data_directory,Parcellation,Subcortical,leida_results,N_areas,Tmax,apply_filter,flp,fhi,TR);
+if Run_eigenvectors
+    % Parcellate the data in MNI space with the selected atlas
+    if strcmpi(Data_space,'MNI')
+        parcellated_dir = [leida_results 'Parcellated_' Parcellation filesep];
+        Parcellate(Data_directory,File_pattern,parcellated_dir,Parcellation,N_areas);
+        Data_directory = parcellated_dir;
+        File_pattern = ['*_' Parcellation '.mat'];
+        Data_orientation = 'AreasxTime';
+        Data_variable = 'data';
+    end
 
-SelectSample345(leida_results)
-
-% Cluster the leading eigenvectors of all subjects
-LEiDA_cluster(leida_results);
-
-[Index_Conditions, Condition_tags] = Get_Diagnosis_from_CSV(leida_results);
-
-% Compute the fractional occupancy and perform hypothesis tests
-LEiDA_stats_FracOccup(leida_results,Index_Conditions,Condition_tags,Paired_tests,n_permutations,n_bootstraps);
-
-%% C: MAKE FIGURES
-% Plot the centroids obtained using LEiDA and their overlap with Yeo nets
-Plot_Centroid_Pyramid(leida_results,Condition_tags,Parcellation,Subcortical,N_areas,CortexDirection)
-
-%CortexDirection = 'SideView';
-%Plot_Centroid_Pyramid(leida_results,Condition_tags,Parcellation,Subcortical,N_areas,CortexDirection)
-
-% Generate and save the p-value and barplot plots for fractional occupancy
-Plot_FracOccup(leida_results)
-
+    % Compute the leading eigenvectors of the data
+    LEiDA_data(Data_directory,File_pattern,leida_results,N_areas,N_parcels,...
+               Data_orientation,Data_variable,Subject_list,apply_filter,flp,fhi,TR);
 end
 
-% % 
-% %% 
-% selectedK=8;
-% Plot_K_overlap_yeo_nets(LEiDA_directory,leida_results,selectedK,Parcellation)
-% %
+% Cluster the leading eigenvectors of all scans
+if Run_clustering
+    LEiDA_cluster(leida_results,rangeK);
+end
+
+%% C: STUDY DESIGN, STATISTICS AND FIGURES
+
+% Assign each scan to a condition
+if strcmpi(Condition_source,'none')
+    Condition_tags = {};
+else
+    [Index_Conditions,Condition_tags] = LEiDA_conditions(leida_results,Condition_source,...
+        Condition_tags,Metadata_file,Metadata_subject_column,Metadata_session_column,Condition_column);
+
+    % Compute the fractional occupancy and perform hypothesis tests
+    LEiDA_stats_FracOccup(leida_results,Index_Conditions,Condition_tags,Paired_tests,n_permutations,n_bootstraps);
+
+    % Generate and save the p-value and barplot plots for fractional occupancy
+    Plot_FracOccup(leida_results)
+end
+
+% Plot the centroids obtained using LEiDA and their overlap with Yeo nets
+Plot_Centroid_Pyramid(leida_results,Condition_tags,Parcellation,N_areas,CortexDirection)

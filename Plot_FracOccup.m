@@ -129,9 +129,9 @@ if n_Cond > 2
             mean_P_cond = zeros(1,n_Cond);
             ste = zeros(1,n_Cond);
             for j = 1:n_Cond
-                P_cond{j} = P(Index_Conditions == j,rangeK == k+1,c);
-                mean_P_cond(j) = nanmean(P(Index_Conditions == j,rangeK == k+1,c));
-                ste(j) = std(P(Index_Conditions == j,rangeK == k+1,c))/sqrt(numel(P(Index_Conditions == j,rangeK == k+1,c)));
+                P_cond{j} = P(Index_Conditions == j,k,c);
+                mean_P_cond(j) = nanmean(P(Index_Conditions == j,k,c));
+                ste(j) = std(P(Index_Conditions == j,k,c))/sqrt(numel(P(Index_Conditions == j,k,c)));
             end
 
             bar(1:n_Cond,mean_P_cond,'EdgeColor','k','LineWidth',0.8,'FaceColor','none')
@@ -167,8 +167,8 @@ for i = 1:n_compare
             
             hold on
             
-            P_cond1 = squeeze(P(Index_Conditions == condRow(i),rangeK == k+1,c))';  % Vector containing Prob of c in cond1
-            P_cond2 = squeeze(P(Index_Conditions == condCol(i),rangeK == k+1,c))';  % Vector containing Prob of c in cond2
+            P_cond1 = squeeze(P(Index_Conditions == condRow(i),k,c))';  % Vector containing Prob of c in cond1
+            P_cond2 = squeeze(P(Index_Conditions == condCol(i),k,c))';  % Vector containing Prob of c in cond2
             
             if P_pval2sided(i,k,c) > (0.05/rangeK(k))
                 bar(1:2,[mean(P_cond1) mean(P_cond2)],'EdgeColor','k','LineWidth',0.8,'FaceColor','none')

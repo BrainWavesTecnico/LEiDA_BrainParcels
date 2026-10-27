@@ -1,7 +1,7 @@
 function Plot_C_summary(data_dir,save_dir,selectedK,centroid,parcellation,n_areas,Subcortical)
 %
 % Plot the centroids in 3D glass brain, in vector format and the boxplots
-% of the fractional occupancy and dwell time value
+% of the fractional occupancy values
 %
 % INPUT:
 % data_dir      directory where LEiDA results are stored

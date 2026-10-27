@@ -18,7 +18,6 @@ function LEiDA_AnalysisCentroid
 %    - Plot PL state as vector with labels of parcellation
 %    - Plot PL state as vector with areas ordered by contribution
 %    - Plot boxplot of fractional occupancy values by condition
-%    - Plot boxplot of dwell time values by condition
 %    - Plot of summary information for the selected PL state
 %
 % Tutorial: README.md

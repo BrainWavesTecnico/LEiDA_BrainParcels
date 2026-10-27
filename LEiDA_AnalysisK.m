@@ -20,7 +20,6 @@ function LEiDA_AnalysisK
 %    - Plot PL states in matrix format
 %    - Plot PL states in vector format with number of each parcel
 %    - Plot boxplot of fractional occupancy values
-%    - Plot boxplot of dwell time values
 %    - Plot of summary information for the repertoire of K PL states
 %    - Plot overlap of PL states with RSNs defined by Yeo et al., (2011)
 %

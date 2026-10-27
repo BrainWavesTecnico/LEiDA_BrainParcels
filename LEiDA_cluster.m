@@ -1,4 +1,4 @@
-function [Kmeans_results,rangeK] = LEiDA_cluster(data_dir)
+function [Kmeans_results,rangeK] = LEiDA_cluster(data_dir,rangeK)
 %
 % Cluster all leading eigenvectors into a set of K clusters
 % using the K-means algorithm. 
@@ -6,6 +6,7 @@ function [Kmeans_results,rangeK] = LEiDA_cluster(data_dir)
 %
 % INPUT:
 % data_dir         directory where the LEiDA_EigenVectors file is saved
+% rangeK           range of values of K to compute (default 2:20)
 %
 % OUTPUT:
 % Kmeans_results   clustering solutions for the range of values K
@@ -16,9 +17,10 @@ function [Kmeans_results,rangeK] = LEiDA_cluster(data_dir)
 
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CLUSTERING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 
-% Set maximum/minimum number of clusters
-mink = 2;
-maxk = 20;
+% Default range of the number of clusters
+if nargin < 2 || isempty(rangeK)
+    rangeK = 2:20;
+end
 
 % File with leading eigenvectors (output from LEiDA_data.m)
 file_V1 = 'LEiDA_EigenVectors.mat';
@@ -30,11 +32,11 @@ SignV1=sum(V1_all,2);
 
 V1_all(SignV1>0,:)=-V1_all(SignV1>0,:);
 
-% Range of clustering solutions to be computed
-rangeK = mink : maxk;
-
 % Cell to store results for each K using the K-means algorithm
 Kmeans_results = cell(size(rangeK));
+
+% Run the replicates in parallel if the Parallel Computing Toolbox is available
+use_parallel = ~isempty(ver('parallel')) && license('test','Distrib_Computing_Toolbox');
 
 % Number of times to run the clustering
 % (it is convenient to run more replicates for larger samples)
@@ -47,7 +49,7 @@ disp('Clustering eigenvectors into:')
 for K = 1:length(rangeK)
     disp(['- ' num2str(rangeK(K)) ' FC states'])
     [IDX, C, SUMD, D] = kmeans(V1_all,rangeK(K),'Distance','Cosine','Replicates',replicates,'MaxIter',500,'OnlinePhase','off',...,
-                              'Display','off','Options',statset('UseParallel',1));
+                              'Display','off','Options',statset('UseParallel',use_parallel));
     
                          
     % ind_sort sorts the clusters in descending order of occupancy
@@ -62,6 +64,6 @@ end
 % Name of the file to save output
 save_file = 'LEiDA_Clusters.mat';
 
-save([data_dir '/' save_file], 'Kmeans_results', 'rangeK')
+save(fullfile(data_dir,save_file), 'Kmeans_results', 'rangeK')
 disp(['K-means clustering completed and results saved as ' save_file])
 disp(' ');

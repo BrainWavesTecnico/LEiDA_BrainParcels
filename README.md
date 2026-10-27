@@ -12,7 +12,7 @@
 ## Installation of LEiDA Toolbox
 
 Start by creating a new folder where all the LEiDA code and analyses will be saved. 
-Then to install the LEiDA Toolbox, simply unzip the folder LEiDA_Functions.
+Then clone or download this repository into that folder. LEiDA_Start adds the folder with the toolbox functions to the Matlab path automatically.
 
 
 > Note that the LEiDA Toolbox requires the Statistics and Machine Learning Matlab Toolbox.
@@ -21,44 +21,83 @@ Then to install the LEiDA Toolbox, simply unzip the folder LEiDA_Functions.
 
 ## LEiDA Start
 
-The function ***LEiDA_Start.m*** runs the first stage of the LEiDA analyses. This function is divided into two sections. The user is expected to only need to change the inputs in *Section A*.
+The function ***LEiDA_Start.m*** runs the first stage of the LEiDA analyses. The user is expected to only need to change the inputs in *Section A*. All parameters of the run are saved in *LEiDA_Parameters.mat* in the results folder.
+
+> Requires MATLAB R2020b or later.
 
 Input parameters:
 
-- ***LEiDA_directory***: main directory of the LEiDA Toolbox; this should be a folder containing a folder (for example, designated LEiDA_Functions) which contains all the functions available in the toolbox;
-- ***Data_directory***: directory of the folder with the parcellated fMRI data; this folder does not need to be inside the folder *LEiDA_directory*;
-- ***run_name***: name of the current run to be used to create a folder to save the results from the LEiDA analyses;
-- ***Conditions_tag***: tag of the conditions given in the imaging files; it is expected that the file names of the parcellated data files contain a tag stating the condition to which a given participant belongs to; the tags should correspond exactly to the tags used in the file names; there can be any number of conditions;
-- ***Parcellation***: parcellation template applied to the segment the fMRI data. Available options include 'AAL116', 'AAL120', 'dbs80' and 'glasser360';
-- ***N_areas***: number of brain areas of the parcellation to consider for analysis;
-- ***TR***: TR of the fMRI data;
-- ***Tmax***: maximum number of TRs considering all fMRI sessions;
+*Directories*
+
+- ***Data_directory***: folder with the input data. Files are searched in this folder and in all its subfolders (e.g. *sub-XXX/ses-YYY/*);
+- ***Results_directory***: folder where the results are saved. A subfolder *LEiDA_Results_<run_name>* is created inside it. It does not need to be inside the toolbox folder;
+- ***run_name***: name of the current run, used to name the results folder;
+
+*Input data*
+
+- ***Data_space***: `'parcellated'` if each file contains the time series of each brain area, or `'MNI'` if the files are 4D NIfTI images in MNI 2mm space, which are first parcellated with the atlas defined in *Parcellation* (see *Parcellate.m*);
+- ***File_pattern***: pattern of the file names to use (`*` is a wildcard), e.g. `'*BOLDpreprocessed_rp_mo_csf_wm_nui-parcellatedAAL90.mat'` or `'*.nii.gz'`. Only files matching this pattern are used;
+- ***Data_orientation***: `'AreasxTime'`, `'TimexAreas'` or `'auto'` (detect it from the number of areas);
+- ***Data_variable***: name of the variable (or struct field) with the time series in .mat files; `''` to detect it automatically;
+- ***Subject_list***: optional text file with the IDs of the subjects to include (one per line, e.g. `sub-control019`); `''` to use all files matching *File_pattern*;
+
+*Parcellation*
+
+- ***Parcellation***: atlas used to parcellate the data. To parcellate data in MNI space and to render the FC states in the brain it must be one of the atlases in *ParcelsMNI2mm.mat*: `'AAL116'`, `'AAL120'`, `'dbs80'`, `'Desikan'`, `'Schaefer100'`, `'glasser360'`. Set to `''` for other atlases (the brain renderings are skipped);
+- ***N_areas***: number of areas to consider (the first *N_areas* areas of the data, e.g. 90 to use only the cerebrum areas of AAL116). Leave `[]` to use all the areas in the data (or all the parcels of the atlas for data in MNI space);
+
+*Signal processing*
+
+- ***TR***: TR of the fMRI data in seconds;
 - ***apply_filter***: apply temporal filtering to the parcellated data (0: no; 1: yes);
 - ***flp***: lowpass frequency of filter (default 0.1);
 - ***fhi***: highpass frequency of filter (default 0.01);
+
+*Clustering*
+
+- ***rangeK***: range of numbers of FC states (K) to compute (default `2:20`);
+
+*Study design*
+
+- ***Condition_source***: how to assign each scan to a condition:
+    - `'filename'`: a scan belongs to the condition whose tag in *Condition_tags* is found in its file path, e.g. `{'sub-control','sub-patient'}`;
+    - `'metadata'`: the condition is read from a table (.csv or .xlsx), see below;
+    - `'none'`: no conditions (only eigenvectors, clustering and centroids);
+- ***Metadata_file***: table (.csv or .xlsx) with one row per subject, or per subject and session. The header is the first row containing *Metadata_subject_column*, so rows above it (e.g. units) are ignored. All sheets of a spreadsheet are read, and the name of each sheet is available as a column named `sheet`;
+- ***Metadata_subject_column***: column with the subject IDs, as they appear in the folder/file names (e.g. `sub-control019`);
+- ***Metadata_session_column***: column with the session IDs (e.g. `ses-midcycle`); `''` if there is only one scan per subject;
+- ***Condition_column***: column with the condition of each scan (or `'sheet'`);
+- ***Condition_tags***: conditions to compare (tags in the file names, or values of *Condition_column*). Scans not belonging to any of these conditions are left out of the statistics. With `'metadata'`, leave `{}` to use all values found;
+
+*Statistics and figures*
+
 - ***Paired_tests***: experimental paradigm (0: subjects in different conditions are not the same; 1: subjects are the same across conditions);
-- ***CortexDirection***: direction to plot the PL states/brain ('SideView' or 'TopView').
+- ***n_permutations***: number of permutations (e.g. 500 for a first quick analysis, 10000 for final results);
+- ***n_bootstraps***: number of bootstrap samples within each permutation (e.g. 1 for a first quick analysis, 500 for final results);
+- ***CortexDirection***: direction to plot the FC states/brain (`'SideView'` or `'TopView'`);
+- ***Run_eigenvectors***, ***Run_clustering***: set to 0 to reuse the eigenvectors and clusters computed in a previous run (e.g. to test a new study design).
 
 After filling the input parameters click *Run* on your Matlab dashboard.
 
 Output:
 
 - Creates a directory to store the results from the LEiDA analyses;
-- Computes the leading eigenvectors of the data and saves them in the file *LEiDA_EigenVectors.mat*;
-- Clusters the leading eigenvectors of all participants and saves the clusters in the file *LEiDA_Clusters.mat*;
+- (If *Data_space* is `'MNI'`) Parcellates the data and saves it in the folder *Parcellated_<Parcellation>* inside the results folder;
+- Computes the leading eigenvectors of the data and saves them in the file *LEiDA_EigenVectors.mat*, together with *Scan_info*, a table with the file, subject and session of each scan;
+- Clusters the leading eigenvectors of all scans and saves the clusters in the file *LEiDA_Clusters.mat*;
+- Assigns each scan to a condition and saves it in *LEiDA_Conditions.mat* (with *Scan_info* including all the columns of the metadata table);
 - Computes the fractional occupancy, performs hypothesis (permutation) tests to compare the mean fractional occupancy across conditions and saves the results in the file *LEiDA_Stats_FracOccup.mat*;
 - Plots figure with two-sided p-values obtained from the comparison of the mean fractional occupancy, plots figures with barplots of the fractional occupancy values and saves the figures in png and fig format;
-- Computes the dwell time, performs hypothesis (permutation) tests to compare the mean dwell time across conditions and saves the results in the file *LEiDA_Stats_DwellTime.mat*;
-- Plots figure with two-sided p-values obtained from the comparison of the mean dwell time, plots figures with barplots of the dwell time values and saves the figures in png and fig format;
 - Plots the PL states (centroids) obtained by clustering the leading eigenvectors and saves the figure in png and fig format;
 
 ---
 
 ## Format of the inputs
 
-The input data should be contained in the folder specified in the variable *Data_directory*. This folder should contain the time series data for each participant as a separate file. The file name of each participant should contain a tag specifying the condition of each participant to allow the computation of intergroup differences. The time series data can be supplied in the following formats:
+The input data should be contained in the folder specified in *Data_directory* (or its subfolders), with one file per scan. Subject and session IDs are read from BIDS-like paths (`sub-XXX`, `ses-YYY`); if the path has no `sub-XXX`, the file name is used as the subject ID. The time series data can be supplied in the following formats:
 
-- A (no. of brain areas $\times$ no. of time points) matrix with double or single precision numeric elements for each subject. The file can be either a Matlab file (.mat), a text file (.txt) or a .1D file. If the files are Matlab structure arrays, the time series fMRI data must be enclosed in a field named data.
+- A (no. of brain areas $\times$ no. of time points) or (no. of time points $\times$ no. of brain areas) matrix (see *Data_orientation*) for each scan. The file can be either a Matlab file (.mat), a text file (.txt) or a .1D file. If the .mat file contains several variables or a struct, set *Data_variable* to the name of the variable/field with the time series (by default, a variable or field named `data` is used);
+- A 4D NIfTI file (.nii or .nii.gz) in MNI 2mm space for each scan, with *Data_space* set to `'MNI'`.
 
 ---
 
@@ -84,8 +123,7 @@ Output:
     - PL states in matrix format;
     - PL states in vector format with numbered areas;  
     - Boxplot of the fractional occupancy values of all K PL states;
-    - Boxplot of the dwell time values of all K PL states;
-    - PL states rendered in 3D glass brain, in vector format and boxplots of the fractional occupancy and dwell time values;
+    - PL states rendered in 3D glass brain, in vector format and boxplots of the fractional occupancy values;
     - Overlap between the K PL states and the 7 RSNs defined by Yeo et al., (2011);
 
 The plots are saved in new directory created according to the value defined for K.
@@ -112,8 +150,7 @@ Output:
     - PL state in vector format with label of each brain area according to the specified parcellation;
     - PL state in vector format with brain areas organised by contribution;
     - Boxplot of the fractional occupancy values for the selected PL state;
-    - Boxplot of the dwell time values for the selected PL state;
-    - PL state in vector format, rendered in a 3D glass brain, in matrix format and boxplots of the fractional occupancy and dwell time values;
+    - PL state in vector format, rendered in a 3D glass brain, in matrix format and boxplots of the fractional occupancy values;
 
 The plots are saved in new directory created according to the value of K and the specified PL state.
 

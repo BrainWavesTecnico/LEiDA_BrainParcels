@@ -1,4 +1,4 @@
-function Plot_Centroid_Pyramid(data_dir,cond,parcellation,Subcortical,n_areas,cortex_dir)
+function Plot_Centroid_Pyramid(data_dir,cond,parcellation,n_areas,cortex_dir)
 %
 % Plot of the rendered centroids on cortical space and overlap with Yeo
 % functional brain networks (Yeo et al. 2011)
@@ -7,8 +7,11 @@ function Plot_Centroid_Pyramid(data_dir,cond,parcellation,Subcortical,n_areas,co
 % data_dir      directory where the centroids obtained for each clustering
 %               solution are saved
 % cond          tags of each condition considered in the experiment
-% parcellation  parcellation used to segment the brain
+% parcellation  parcellation used to segment the brain (atlas available
+%               in ParcelsMNI2mm.mat); if empty or not available, the
+%               plot is skipped
 % n_areas       number of areas of the parcellation to be considered
+%               ([] to use the number of areas of the centroids)
 % cortex_dir    direction of observation of the rendering of the FC states
 %
 % OUTPUT:
@@ -19,11 +22,27 @@ function Plot_Centroid_Pyramid(data_dir,cond,parcellation,Subcortical,n_areas,co
 % Authors: Joana Cabral, Universidade do Minho, joanacabral@med.uminho.pt
 %          Miguel Farinha, ICVS/2CA-Braga, miguel.farinha@ccabraga.pt
 
-% File with results for the dwell time (output from LEiDA_stats_DwellTime.m)
+% File with the clustering results (output from LEiDA_cluster.m)
 file_clusters = 'LEiDA_Clusters.mat';
+
+% The FC states can only be rendered with an atlas in ParcelsMNI2mm.mat
+N_parcels = Atlas_Nparcels(parcellation);
+if isempty(N_parcels)
+    disp('Rendering of the centroids skipped (parcellation not available in ParcelsMNI2mm.mat)')
+    return
+end
 
 % Load required data:
 load([data_dir file_clusters],'Kmeans_results', 'rangeK');
+
+if isempty(n_areas)
+    n_areas = size(Kmeans_results{1}.C,2);
+end
+if n_areas > N_parcels
+    disp(['Rendering of the centroids skipped: the data has ' num2str(n_areas) ...
+          ' areas but ' parcellation ' has only ' num2str(N_parcels) ' parcels'])
+    return
+end
 
 % Number of conditions of the experiment
 n_Cond = size(cond,2);
@@ -50,12 +69,6 @@ YeoColor = [120 18 134; 70 30 180; 0 118 14; 196 58 250; 220 248 164; 230 148 34
 
 % LEiDA networks colored according to closest RSN
 Volume = struct2array(load('ParcelsMNI2mm',['V_' parcellation])); 
-
-if Subcortical
-    Vol_sub= struct2array(load('ParcelsMNI2mm','V_Subcortical')); 
-    Vol_sub(Vol_sub>0)= Vol_sub(Vol_sub>0) + n_areas;
-    Volume(Vol_sub>0) = Vol_sub(Vol_sub>0);
-end
 
 Brain_Mask = niftiread('MNI152_T1_2mm_brain_mask.nii');
 scortex = smooth3(Brain_Mask > 0);
