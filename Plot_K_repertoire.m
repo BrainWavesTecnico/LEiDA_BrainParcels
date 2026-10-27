@@ -1,7 +1,7 @@
 function Plot_K_repertoire(data_dir,save_dir,selectedK,parcellation)
 %
 % Plot the centroids in 3D glass brain, in vector format and the boxplots
-% of the fractional occupancy and dwell time value
+% of the fractional occupancy values
 %
 % INPUT:
 % data_dir      directory where LEiDA results are stored
@@ -20,8 +20,6 @@ function Plot_K_repertoire(data_dir,save_dir,selectedK,parcellation)
 file_cluster = 'LEiDA_Clusters.mat';
 % File with results for the fractional occupancy (output from LEiDA_stats_FracOccup.m)
 file_P = 'LEiDA_Stats_FracOccup.mat';
-% File with results for the dwell time (output from LEiDA_stats_DwellTime.m)
-file_LT = 'LEiDA_Stats_DwellTime.mat';
 
 % Load required data:
 if isfile([data_dir file_cluster])
@@ -29,9 +27,6 @@ if isfile([data_dir file_cluster])
 end
 if isfile([data_dir file_P])
     load([data_dir file_P], 'cond', 'P', 'P_pval2sided', 'Index_Conditions');
-end
-if isfile([data_dir file_LT])
-    load([data_dir file_LT], 'LT', 'LT_pval2sided');
 end
 
 % Number of conditions of the experiment
@@ -45,9 +40,8 @@ V = V'./max(abs(V'));
 % Number of areas considered for analysis
 n_areas = size(V,1);
 
-% Color code from paper Yeo et al., 2011
-YeoColor = [125 50 125; 50 50 200; 0 118 14; 196 58 250; 150 200 100; 256 175 25; 240 90 0]./256;
-Yeo_names = {'Visual','Somatomotor','Dorsal Att.','Ventral Att.','Limbic','Frontoparietal','Default Mode'};
+% Colors of the 7 Yeo et al. (2011) networks (defined in Yeo_colors.m)
+[YeoColor,Yeo_names] = Yeo_colors;
 
 % Compute the overlap between cluster centroids obtained for each value of
 % K and the resting-state networks defined by Yeo et al. 2011
@@ -238,4 +232,3 @@ saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_RepertoireSummary.png']
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_RepertoireSummary.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_RepertoireSummary']);
 
-close all;   

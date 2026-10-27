@@ -1,7 +1,7 @@
 function Plot_C_summary(data_dir,save_dir,selectedK,centroid,parcellation,n_areas,Subcortical)
 %
 % Plot the centroids in 3D glass brain, in vector format and the boxplots
-% of the fractional occupancy and dwell time value
+% of the fractional occupancy values
 %
 % INPUT:
 % data_dir      directory where LEiDA results are stored
@@ -35,9 +35,8 @@ V = Kmeans_results{rangeK == selectedK}.C(centroid,:);
 V = V'./max(abs(V'));
 
 
-% Color code from paper Yeo et al., 2011
-YeoColor = [125 50 125; 50 50 200; 0 118 14; 196 58 250; 150 200 100; 256 175 25; 240 90 0]./256;
-Yeo_names = {'Visual','Somatomotor','Dorsal Att.','Ventral Att.','Limbic','Frontoparietal','Default Mode'};
+% Colors of the 7 Yeo et al. (2011) networks (defined in Yeo_colors.m)
+[YeoColor,Yeo_names] = Yeo_colors;
 
 % Compute the overlap between cluster centroids obtained for each value of
 % K and the resting-state networks defined by Yeo et al. 2011
@@ -396,6 +395,5 @@ saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_S
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_Summary.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) 'C' num2str(centroid) '_Summary']);
 
-close all;
 
 

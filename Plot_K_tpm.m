@@ -63,5 +63,3 @@ for i = 1:n_Cond
     saveas(Fig, fullfile(data_dir, ['K' num2str(selectedK) '_meanTPM_' cond{i} '.fig']),'fig');
     disp(['- Mean TPM of condition ' cond{i} ' successfully saved as K' num2str(selectedK) '_meanTPM_' cond{i}]);
 end
-
-close all;

@@ -108,4 +108,3 @@ saveas(Fig, fullfile(data_dir, 'ClusterPerformance.png'),'png');
 saveas(Fig, fullfile(data_dir, 'ClusterPerformance.fig'),'fig');
 disp('- Plot successfully saved as ClusterPerformance');
 
-close all;

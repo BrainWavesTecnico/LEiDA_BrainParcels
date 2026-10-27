@@ -80,5 +80,3 @@ end
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_VectorOrdered.png']),'png');
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_VectorOrdered.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) 'C' num2str(centroid) '_VectorOrdered']);
-
-close all;

@@ -48,5 +48,3 @@ end
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_Matrix.png']),'png');
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_Matrix.fig']),'fig');
 disp(['- Plot of matrices successfully saved as K' num2str(selectedK) '_Matrix']);
-
-close all;

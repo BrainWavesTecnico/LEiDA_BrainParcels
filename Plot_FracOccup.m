@@ -31,6 +31,11 @@ load([data_dir file_P],'cond', 'P', 'P_pval2sided', 'Index_Conditions', 'effects
 % Number of conditions of the experiment
 n_Cond = size(cond,2);
 
+% Colors of the significance levels: p<0.05, p<0.05/K and p<0.05/sum(K)
+darkRed = [0.6, 0, 0];
+darkGreen = [0.3, 0.5, 0];
+darkBlue = [0.07, 0.62, 1.00];
+
 % Create a map to place the figures
 pos = power(n_Cond-1,2);
 index_fig = reshape(1:pos, n_Cond-1, n_Cond-1).';
@@ -71,10 +76,10 @@ for s_ind = 1:length(subplot_indices)
     % Subplot adds plots following the rows (not the columns)
     subplot(size(subplot_map,1),size(subplot_map,2),index_fig(subplot_ind))
     
-    semilogy(rangeK(1)-1:rangeK(end)+1,0.05*ones(1,length(rangeK)+2),'r--','LineWidth',1.5)
+    semilogy(rangeK(1)-1:rangeK(end)+1,0.05*ones(1,length(rangeK)+2),'--','Color',darkRed,'LineWidth',1.5)
     hold on
-    semilogy(rangeK(1)-1:rangeK(end)+1,0.05./(rangeK(1)-1:rangeK(end)+1).*ones(1,length(rangeK)+2),'--','Color',[0, .5 0],'LineWidth',1.5)
-    semilogy(rangeK(1)-1:rangeK(end)+1,0.05./sum(rangeK)*ones(1,length(rangeK)+2),'b--','LineWidth',1.5)
+    semilogy(rangeK(1)-1:rangeK(end)+1,0.05./(rangeK(1)-1:rangeK(end)+1).*ones(1,length(rangeK)+2),'--','Color',darkGreen,'LineWidth',1.5)
+    semilogy(rangeK(1)-1:rangeK(end)+1,0.05./sum(rangeK)*ones(1,length(rangeK)+2),'--','Color',darkBlue,'LineWidth',1.5)
     
     for k = 1:length(rangeK)
         for c = 1:rangeK(k)
@@ -83,15 +88,15 @@ for s_ind = 1:length(subplot_indices)
                 % text(rangeK(k),P_pval2sided(s_ind,k,c),[' ' num2str(c)])
             end
             if P_pval2sided(s_ind,k,c) < 0.05 && P_pval2sided(s_ind,k,c) > (0.05/rangeK(k))
-                semilogy(rangeK(k),P_pval2sided(s_ind,k,c),'+r','Markersize',8);
+                semilogy(rangeK(k),P_pval2sided(s_ind,k,c),'+','Color',darkRed,'Markersize',8);
                 % text(rangeK(k),P_pval2sided(s_ind,k,c),[' ' num2str(c)])
             end
             if P_pval2sided(s_ind,k,c) < (0.05/rangeK(k)) && P_pval2sided(s_ind,k,c) > (0.05/sum(rangeK))
-                semilogy(rangeK(k),P_pval2sided(s_ind,k,c),'o','Color',[0, .5 0],'Markersize',8);
+                semilogy(rangeK(k),P_pval2sided(s_ind,k,c),'o','Color',darkGreen,'Markersize',8);
                 % text(rangeK(k),P_pval2sided(s_ind,k,c),[' ' num2str(c)])
             end
             if P_pval2sided(s_ind,k,c) <= (0.05/sum(rangeK))
-                semilogy(rangeK(k),P_pval2sided(s_ind,k,c),'*b','Markersize',8);
+                semilogy(rangeK(k),P_pval2sided(s_ind,k,c),'*','Color',darkBlue,'Markersize',8);
                 % text(rangeK(k),P_pval2sided(s_ind,k,c),[' ' num2str(c)])
             end
         end
@@ -129,9 +134,9 @@ if n_Cond > 2
             mean_P_cond = zeros(1,n_Cond);
             ste = zeros(1,n_Cond);
             for j = 1:n_Cond
-                P_cond{j} = P(Index_Conditions == j,rangeK == k+1,c);
-                mean_P_cond(j) = nanmean(P(Index_Conditions == j,rangeK == k+1,c));
-                ste(j) = std(P(Index_Conditions == j,rangeK == k+1,c))/sqrt(numel(P(Index_Conditions == j,rangeK == k+1,c)));
+                P_cond{j} = P(Index_Conditions == j,k,c);
+                mean_P_cond(j) = nanmean(P(Index_Conditions == j,k,c));
+                ste(j) = std(P(Index_Conditions == j,k,c))/sqrt(numel(P(Index_Conditions == j,k,c)));
             end
 
             bar(1:n_Cond,mean_P_cond,'EdgeColor','k','LineWidth',0.8,'FaceColor','none')
@@ -167,17 +172,17 @@ for i = 1:n_compare
             
             hold on
             
-            P_cond1 = squeeze(P(Index_Conditions == condRow(i),rangeK == k+1,c))';  % Vector containing Prob of c in cond1
-            P_cond2 = squeeze(P(Index_Conditions == condCol(i),rangeK == k+1,c))';  % Vector containing Prob of c in cond2
+            P_cond1 = squeeze(P(Index_Conditions == condRow(i),k,c))';  % Vector containing Prob of c in cond1
+            P_cond2 = squeeze(P(Index_Conditions == condCol(i),k,c))';  % Vector containing Prob of c in cond2
             
             if P_pval2sided(i,k,c) > (0.05/rangeK(k))
                 bar(1:2,[mean(P_cond1) mean(P_cond2)],'EdgeColor','k','LineWidth',0.8,'FaceColor','none')
             end
             if P_pval2sided(i,k,c) <= (0.05/rangeK(k)) && P_pval2sided(i,k,c) > (0.05/sum(rangeK))
-                bar(1:2,[mean(P_cond1) mean(P_cond2)],'EdgeColor',[0, .5 0],'LineWidth',0.8,'FaceColor','none')
+                bar(1:2,[mean(P_cond1) mean(P_cond2)],'EdgeColor',darkGreen,'LineWidth',0.8,'FaceColor','none')
             end
             if P_pval2sided(i,k,c) <= (0.05/sum(rangeK))
-                bar(1:2,[mean(P_cond1) mean(P_cond2)],'EdgeColor','b','LineWidth',0.8,'FaceColor','none')
+                bar(1:2,[mean(P_cond1) mean(P_cond2)],'EdgeColor',darkBlue,'LineWidth',0.8,'FaceColor','none')
             end
         
             hold on
@@ -211,10 +216,10 @@ for s_ind = 1:length(subplot_indices)
     % Subplot adds plots following the rows (not the columns)
     subplot(size(subplot_map,1),size(subplot_map,2),index_fig(subplot_ind))
     
-    plot([rangeK(1)-1 rangeK(end)+1],[0.8 0.8],'b--','LineWidth',1.5);   
+    plot([rangeK(1)-1 rangeK(end)+1],[0.8 0.8],'--','Color',darkBlue,'LineWidth',1.5);   
     hold on;
-    plot([rangeK(1)-1 rangeK(end)+1],[0.5 0.5],'g--','LineWidth',1.5);
-    plot([rangeK(1)-1 rangeK(end)+1],[0.2 0.2],'r--','LineWidth',1.5);
+    plot([rangeK(1)-1 rangeK(end)+1],[0.5 0.5],'--','Color',darkGreen,'LineWidth',1.5);
+    plot([rangeK(1)-1 rangeK(end)+1],[0.2 0.2],'--','Color',darkRed,'LineWidth',1.5);
     
     for k = 1:length(rangeK)
         for c = 1:rangeK(k)
@@ -223,15 +228,15 @@ for s_ind = 1:length(subplot_indices)
                 % text(rangeK(k),effectsize(s_ind,k,c),[' ' num2str(c)]);
             end
             if effectsize(s_ind,k,c) > 0.2 && effectsize(s_ind,k,c) < 0.5
-                plot(rangeK(k),effectsize(s_ind,k,c),'+r','Markersize',8);
+                plot(rangeK(k),effectsize(s_ind,k,c),'+','Color',darkRed,'Markersize',8);
                 % text(rangeK(k),effectsize(s_ind,k,c),[' ' num2str(c)]);
             end
             if effectsize(s_ind,k,c) > 0.5 && effectsize(s_ind,k,c) < 0.8
-                plot(rangeK(k),effectsize(s_ind,k,c),'o','Color',[0, .5 0],'Markersize',8);
+                plot(rangeK(k),effectsize(s_ind,k,c),'o','Color',darkGreen,'Markersize',8);
                 % text(rangeK(k),effectsize(s_ind,k,c),[' ' num2str(c)]);
             end
             if effectsize(s_ind,k,c) > 0.8
-                plot(rangeK(k),effectsize(s_ind,k,c),'*b','Markersize',8);
+                plot(rangeK(k),effectsize(s_ind,k,c),'*','Color',darkBlue,'Markersize',8);
                 % text(rangeK(k),effectsize(s_ind,k,c),[' ' num2str(c)]);
             end
         end
@@ -251,4 +256,3 @@ saveas(Fig4, fullfile(data_dir, 'FracOccup_effetcsize.fig'),'fig');
 disp('- Plot successfully saved as FracOccup_effetcsize');
 
 disp(' ')
-close all;

@@ -31,8 +31,8 @@ V = Kmeans_results{rangeK == selectedK}.C;
 % Number of areas considered for analysis
 n_areas = size(V,2);
 
-% Color code from paper Yeo et al., 2011
-YeoColor = [125 50 125; 50 50 200; 0 118 14; 196 58 250; 150 200 100; 256 175 25; 240 90 0]./256;
+% Colors of the 7 Yeo et al. (2011) networks (defined in Yeo_colors.m)
+YeoColor = Yeo_colors;
 
 % Compute the overlap between cluster centroids obtained for each value of
 % K and the resting-state networks defined by Yeo et al. 2011
@@ -80,5 +80,3 @@ end
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_OverlapYeoNets.png']),'png');
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_OverlapYeoNets.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_OverlapYeoNets']);
-
-close all;

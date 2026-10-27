@@ -1,28 +1,38 @@
-function [V1_all,Time_sessions,Data_info] = LEiDA_data(data_dir,parcellation,Subcortical,save_dir,n_areas,tmax,filter,flp,fhi,tr)
+function [V1_all,Time_sessions,Data_info] = LEiDA_data(data_dir,file_pattern,save_dir,n_areas,n_parcels,orientation,data_variable,subject_list,filter,flp,fhi,tr)
 %
-% For each subject compute the leading eigenvetor of the phase coherence
+% For each scan compute the leading eigenvector of the phase coherence
 % matrix calculated at each recording frame.
 %
 % INPUT:
-% data_dir      directory where the parcellated fMRI data are saved;
-%               fMRI data should be one file per subject; data can be a
-%               matrix containing the time series in the formats .mat,
-%               .1D and .txt; if data is as a struct then fMRI signal
-%               should correspond to a field called data
+% data_dir      directory where the parcellated fMRI data are saved; files
+%               are searched in this directory and all its subfolders
+% file_pattern  pattern of the file names to use (* is a wildcard), e.g.
+%               '*parcellatedAAL90.mat'; one file per scan; files can be
+%               .mat (matrix, or struct with the time series in a field),
+%               .txt or .1D
 % save_dir      directory where the leading eigenvectors will be saved
-% n_areas       number of brain areas to consider for analysis
-% tmax          maximum number of volumes across fMRI sessions
-% filter        0, temporal filtering (default); 1, no temporal filtering
+% n_areas       number of brain areas to consider for analysis (the first
+%               n_areas of the data); [] to use all areas
+% n_parcels     number of parcels of the atlas ([] if unknown); only used
+%               to detect the orientation of the data when 'auto'
+% orientation   'AreasxTime', 'TimexAreas' or 'auto'
+% data_variable name of the variable/field with the time series in .mat
+%               files ('' to detect it automatically)
+% subject_list  text file with the IDs of the subjects to include ('' to
+%               include all scans)
+% filter        0, no temporal filtering; 1, temporal filtering
 % flp           lowpass frequency of filter
 % fhi           highpass frequency of filter
 % tr            TR of fMRI data
 %
 % OUTPUT:
-% V1_all        (n_scans*(tmax-2) x n_areas) leading eigenvectors of all
-%                subjects at each time point
-% Time_sessions (1 x n_scans*(tmax-2)) scan number of each leading
-%                eigenvector
-% Data_info      parcellated data
+% V1_all        (n_timepoints x n_areas) leading eigenvectors of all scans
+%                at each time point
+% Time_sessions (1 x n_timepoints) scan number of each leading eigenvector
+% Data_info      file information of each scan (output of dir)
+%
+% Also saves Scan_info, a table with the file, subject and session of each
+% scan (subject and session are read from BIDS-like paths, sub-XXX/ses-YYY)
 %
 % Author: Joana Cabral, University of Minho, joanacabral@med.uminho.pt
 %         Miguel Farinha, ICVS/2CA-Braga, miguel.farinha@ccabraga.pt
@@ -30,24 +40,41 @@ function [V1_all,Time_sessions,Data_info] = LEiDA_data(data_dir,parcellation,Sub
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LEADING EIGENVECTORS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
 disp(' ')
 
+% Get the files containing the data in data_dir and all its subfolders
+Data_info = dir(fullfile(data_dir, '**', file_pattern));
+Data_info = Data_info(~[Data_info.isdir]);
+if isempty(Data_info)
+    error('LEiDA:nodata','No files matching ''%s'' were found in %s', file_pattern, data_dir);
+end
+% Sort by full path so that the order of the scans is reproducible
+[~,ind_sort] = sort(fullfile({Data_info.folder},{Data_info.name}));
+Data_info = Data_info(ind_sort);
 
-% Get the files containg the data (.mat or .1D or .txt)
-Data_info = dir(fullfile(data_dir, '**', ['*' parcellation '.mat']));
+% Subject and session of each scan
+Scan_info = Get_scan_info(Data_info,data_dir);
+
+% Keep only the subjects in subject_list
+if ~isempty(subject_list)
+    keep_subjs = strtrim(readlines(subject_list));
+    keep_subjs = keep_subjs(keep_subjs ~= "");
+    keep_scan = ismember(Scan_info.subject, keep_subjs);
+    disp(['Subjects not in ' subject_list ' are excluded: ' num2str(nnz(~keep_scan)) ' scans removed'])
+    missing_subjs = setdiff(keep_subjs, Scan_info.subject);
+    if ~isempty(missing_subjs)
+        disp(['Attention: no scans were found for ' strjoin(missing_subjs,', ')])
+    end
+    Data_info = Data_info(keep_scan);
+    Scan_info = Scan_info(keep_scan,:);
+end
+
 % Total number of scans that will be read
 n_scans = size(Data_info,1);
-disp(['Total number of scans in folder: ' num2str(n_scans)])
+disp(['Total number of scans: ' num2str(n_scans)])
 disp(' ')
 
-% Matrix to store the leading eigenvectors of all subjects at each TR
-if Subcortical==0
-    V1_all = zeros(n_scans*(tmax-2),n_areas);
-elseif Subcortical==1
-    V1_all = zeros(n_scans*(tmax-2),n_areas+19);
-end
-% Row vector with the scan number of each leading eigenvector
-Time_sessions = zeros(1,n_scans*(tmax-2));  
+% Leading eigenvectors of each scan
+V1_scans = cell(n_scans,1);
 
-t_all = 0;
 discarded = [];
 idx_data = [];
 % Scans in which some areas had NaN/Inf or 0s and were repaired
@@ -56,25 +83,26 @@ repaired = {};
 % Fixed seed so that the noise added to empty areas is reproducible
 rng(0,'twister');
 for s = 1:n_scans
-    
-    disp(['Computing the leading eigenvectors for scan ' num2str(s) ' ' Data_info(s).name]);
-    
-    % Handling the data differently depending on the file extension:
-    % Regardless of the extension we import the data
-    signal = importdata(fullfile(Data_info(s).folder,Data_info(s).name));
-    if strcmp(parcellation,'Schaefer100')
-        % The data in Schaefer is TxN
-        signal = signal';
-    end
+
+    disp(['Computing the leading eigenvectors for scan ' num2str(s) ' ' Scan_info.file{s}]);
+
+    signal = Load_signal(fullfile(Data_info(s).folder,Data_info(s).name),data_variable);
+
+    % Put the signal in the format areas x time
+    signal = Orient_signal(signal,orientation,n_areas,n_parcels,s == 1);
+
     % Selecting only the areas specified by the user
+    if isempty(n_areas)
+        n_areas = size(signal,1);
+        disp(['      - Using all ' num2str(n_areas) ' areas in the data'])
+    end
+    if size(signal,1) < n_areas
+        disp(['      - Only ' num2str(size(signal,1)) ' areas (expected ' num2str(n_areas) ') -> Discarded']);
+        discarded = cat(2,discarded,s);
+        continue
+    end
     signal = signal(1:n_areas,:);
 
-    if Subcortical
-        subcort_file=dir(fullfile(Data_info(s).folder,'*subcortical.mat'));
-        subcort_signal = importdata(fullfile(Data_info(s).folder,subcort_file.name));
-        signal=cat(1,signal,subcort_signal);
-    end
-    
     % Instead of discarding scans with NaN, Inf or rows of 0s, repair them:
     % - areas with only some NaN/Inf time points are linearly interpolated
     % - areas that are entirely NaN/Inf, 0 or constant are replaced by
@@ -88,64 +116,170 @@ for s = 1:n_scans
     if any(~isfinite(signal(:)))
         disp('      - Signal could not be repaired -> Discarded');
         discarded = cat(2,discarded,s);
-    else
-        % Add index of participant to idx_data
-        idx_data = cat(2,idx_data,s);
+        continue
+    end
 
-        % De-meaning the fMRI signal
-        for n = 1:size(signal,1)
-            signal(n,:) = detrend(signal(n,:) - mean(signal(n,:)));
-        end
-        
-        % Apply temporal filtering to the parcellated data
-        if filter
-            signal = TemporalFiltering(signal,flp,fhi,tr);
-        end
+    % Add index of scan to idx_data
+    idx_data = cat(2,idx_data,s);
 
-        % Get the fMRI signal phase using the Hilbert transform
-        for seed = 1:size(signal,1)
-            signal(seed,:) = angle(hilbert(signal(seed,:)));
-        end
+    % De-meaning the fMRI signal
+    for n = 1:size(signal,1)
+        signal(n,:) = detrend(signal(n,:) - mean(signal(n,:)));
+    end
 
-        % Compute leading eigenvector of each phase coherence matrix
-        for t = 2:size(signal,2)-1 % exclude 1st and last TR of each fMRI signal
+    % Apply temporal filtering to the parcellated data
+    if filter
+        signal = TemporalFiltering(signal,flp,fhi,tr);
+    end
 
-            % Save the leading eigenvector for time t
-            [v1,~] = eigs(cos(signal(:,t)-signal(:,t)'),1);
+    % Get the fMRI signal phase using the Hilbert transform
+    for seed = 1:size(signal,1)
+        signal(seed,:) = angle(hilbert(signal(seed,:)));
+    end
 
-            t_all = t_all + 1; % time point in V1_all
-
-            % row t_all correponds to the computed eigenvector at time t for subject s
-            V1_all(t_all,:) = v1;
-
-            % to which subject the computed leading eigenvector belongs
-            Time_sessions(t_all) = s;
-        end
+    % Compute leading eigenvector of each phase coherence matrix
+    % (exclude 1st and last TR of each fMRI signal)
+    T = size(signal,2);
+    V1_scans{s} = zeros(T-2,n_areas);
+    for t = 2:T-1
+        [v1,~] = eigs(cos(signal(:,t)-signal(:,t)'),1);
+        V1_scans{s}(t-1,:) = v1;
     end
 end
-% Reduce size in case some scans have less TRs than tmax
-% In this case, these lines of code will not result in changes
-V1_all(t_all+1:end,:) = [];
-Time_sessions(:,t_all+1:end) = [];
+
+% Leading eigenvectors of all scans and the scan to which each belongs
+V1_all = cat(1,V1_scans{:});
+Time_sessions = repelem(1:n_scans, cellfun(@(v) size(v,1), V1_scans)');
+clear V1_scans
+N_areas = n_areas;
 
 disp(' ')
 disp(['Total number of scans used to compute the leading eigenvectors: ' num2str(length(idx_data))]);
 
 for d = 1:length(discarded)
-    disp(['Attention: ' Data_info(discarded(d)).name ' was discarded'])
+    disp(['Attention: ' Scan_info.file{discarded(d)} ' was discarded'])
 end
 for d = 1:size(repaired,1)
-    disp(['Attention: ' Data_info(repaired{d,1}).name ' was repaired in areas ' mat2str(repaired{d,2})])
+    disp(['Attention: ' Scan_info.file{repaired{d,1}} ' was repaired in areas ' mat2str(repaired{d,2})])
 end
 disp(' ')
 
 % Name of the file to save output
 save_file = 'LEiDA_EigenVectors.mat';
 
-save([save_dir save_file], 'V1_all','Time_sessions','Data_info','idx_data','repaired')
+% Use the v7.3 format if the eigenvectors are too large for the v7 format
+if numel(V1_all)*8 > 1.9e9
+    save_format = '-v7.3';
+else
+    save_format = '-v7';
+end
+save(fullfile(save_dir,save_file), 'V1_all','Time_sessions','Data_info','Scan_info',...
+     'idx_data','repaired','discarded','N_areas',save_format)
 
 disp(['fMRI Phase Leading Eigenvectors saved successfully as ' save_file])
 disp(' ')
+end
+
+
+function Scan_info = Get_scan_info(Data_info,data_dir)
+%
+% Table with the file (relative to data_dir), subject and session of each
+% scan. Subject and session are read from BIDS-like paths (sub-XXX and
+% ses-YYY). If the path has no sub-XXX, the file name is used as subject.
+%
+
+n_scans = numel(Data_info);
+data_root = [regexprep(data_dir,'[\\/]+$','') filesep];
+file = cell(n_scans,1);
+subject = strings(n_scans,1);
+session = strings(n_scans,1);
+for s = 1:n_scans
+    full_file = fullfile(Data_info(s).folder,Data_info(s).name);
+    file{s} = erase(full_file, data_root);
+    sub = regexp(file{s}, 'sub-[A-Za-z0-9]+', 'match', 'once');
+    if isempty(sub)
+        [~,sub] = fileparts(Data_info(s).name);
+    end
+    subject(s) = sub;
+    session(s) = regexp(file{s}, 'ses-[A-Za-z0-9]+', 'match', 'once');
+end
+Scan_info = table(file,subject,session);
+end
+
+
+function signal = Load_signal(file,data_variable)
+%
+% Load the time series of one scan from a .mat, .txt or .1D file
+%
+
+[~,~,ext] = fileparts(file);
+if strcmpi(ext,'.mat')
+    S = load(file);
+    names = fieldnames(S);
+    if ~isempty(data_variable)
+        if ~isfield(S,data_variable)
+            error('LEiDA:variable','Variable ''%s'' not found in %s (variables: %s)', ...
+                  data_variable, file, strjoin(names',', '));
+        end
+        signal = S.(data_variable);
+    elseif numel(names) == 1
+        signal = S.(names{1});
+    elseif isfield(S,'data')
+        signal = S.data;
+    else
+        % Use the largest numeric matrix in the file
+        sizes = cellfun(@(n) isnumeric(S.(n))*numel(S.(n)), names);
+        [~,ind] = max(sizes);
+        signal = S.(names{ind});
+    end
+    % Time series inside a struct
+    if isstruct(signal)
+        if ~isempty(data_variable) && isfield(signal,data_variable)
+            signal = signal.(data_variable);
+        elseif isfield(signal,'data')
+            signal = signal.data;
+        else
+            error('LEiDA:variable','Could not find the time series in %s; set Data_variable', file);
+        end
+    end
+else
+    % Text files (.txt, .1D, ...)
+    signal = importdata(file);
+    if isstruct(signal)
+        signal = signal.data;
+    end
+end
+signal = double(signal);
+end
+
+
+function signal = Orient_signal(signal,orientation,n_areas,n_parcels,verbose)
+%
+% Return the signal in the format areas x time
+%
+
+switch lower(orientation)
+    case 'areasxtime'
+        % nothing to do
+    case 'timexareas'
+        signal = signal';
+    case 'auto'
+        % The dimension matching the number of areas/parcels is the areas
+        n_expected = unique([n_parcels n_areas]);
+        rows_match = any(size(signal,1) == n_expected);
+        cols_match = any(size(signal,2) == n_expected);
+        if cols_match && ~rows_match
+            signal = signal';
+        elseif ~rows_match && verbose
+            disp(['      - Could not detect the orientation of the data (size ' mat2str(size(signal)) ...
+                  '); assuming AreasxTime. Set Data_orientation if this is not correct.'])
+        end
+    otherwise
+        error('LEiDA:orientation','Data_orientation must be ''AreasxTime'', ''TimexAreas'' or ''auto''');
+end
+if verbose
+    disp(['      - Data has ' num2str(size(signal,1)) ' areas and ' num2str(size(signal,2)) ' time points'])
+end
 end
 
 

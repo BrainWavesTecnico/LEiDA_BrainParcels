@@ -20,7 +20,6 @@ function LEiDA_AnalysisK
 %    - Plot PL states in matrix format
 %    - Plot PL states in vector format with number of each parcel
 %    - Plot boxplot of fractional occupancy values
-%    - Plot boxplot of dwell time values
 %    - Plot of summary information for the repertoire of K PL states
 %    - Plot overlap of PL states with RSNs defined by Yeo et al., (2011)
 %
@@ -85,8 +84,6 @@ K_dir = [leida_res 'K' num2str(SelectK) '/'];
 
 %% ANALYSE K CENTROIDS SELECTED ACCORDING TO OUTPUT FROM LEiDA_Start
 
-% Close all open figures
-close all;
 
 disp(' ')
 disp(['%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FIGURES FOR K = ' num2str(SelectK) ' PL STATES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'])
