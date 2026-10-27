@@ -98,12 +98,14 @@ rangeK = 2:20;
 % ----------------------------- STUDY DESIGN ------------------------------
 % How to assign each scan to a condition:
 %   'filename' : a scan belongs to the condition whose tag (in
-%                Condition_tags) is found in its file path, e.g.
-%                Condition_tags = {'sub-control','sub-patient'}
+%                Condition_tags) is found in its file path (relative to
+%                Data_directory, e.g. sub-patient001/ses-ictal/...), e.g.
+%                Condition_tags = {'sub-control','sub-patient'} or
+%                Condition_tags = {'sub-control','ses-interictal','ses-ictal'}
 %   'metadata' : the condition is read from a table (.csv or .xlsx) with
 %                one row per subject (or per subject and session)
 %   'none'     : no conditions (only eigenvectors, clustering and centroids)
-Condition_source = 'metadata';
+Condition_source = 'filename';
 % Metadata table (only used if Condition_source = 'metadata'). In
 % spreadsheets with several sheets, all sheets are read and the name of
 % the sheet is available as a column named 'sheet':
@@ -120,7 +122,15 @@ Condition_column = 'sheet';
 % paths; with 'metadata', the values of Condition_column. Scans not
 % belonging to any of these conditions are left out of the statistics.
 % Leave {} with 'metadata' to use all values found in Condition_column.
-Condition_tags = {'controls','patients'};
+% Examples:
+%   controls vs patients ('metadata' with Condition_column = 'sheet'):
+%       Condition_tags = {'controls','patients'};
+%   controls vs patients interictal vs patients ictal ('filename'):
+%       Condition_tags = {'sub-control','ses-interictal','ses-ictal'};
+Condition_tags = {'sub-control','ses-interictal','ses-ictal'};
+% Names of the conditions in the figures (same order as Condition_tags).
+% Leave {} to use Condition_tags.
+Condition_names = {'Controls','Interictal','Ictal'};
 
 % ------------------------------ STATISTICS -------------------------------
 % Differences between conditions are tested with permutation tests:
@@ -129,7 +139,10 @@ Condition_tags = {'controls','patients'};
 %   1 (paired): the same subjects are scanned in both conditions; each
 %      subject's scans in the two conditions are paired by subject ID.
 %      Statistic: paired t.
-Paired_tests = 0;
+%   'auto': for each pair of conditions, paired if they share subjects
+%      (e.g. interictal vs ictal sessions of the same patients) and
+%      unpaired otherwise (e.g. controls vs patients).
+Paired_tests = 'auto';
 % Observations used in the tests:
 %   'subject': the scans of each subject in a condition are averaged, so
 %              each subject counts once (recommended when subjects have
@@ -181,7 +194,7 @@ save([leida_results 'LEiDA_Parameters.mat'], 'Data_directory', 'Data_space', ...
      'File_pattern', 'Data_orientation', 'Data_variable', 'Subject_list', ...
      'Parcellation', 'N_areas', 'TR', 'apply_filter', 'flp', 'fhi', 'rangeK', ...
      'Condition_source', 'Metadata_file', 'Metadata_subject_column', ...
-     'Metadata_session_column', 'Condition_column', 'Condition_tags', ...
+     'Metadata_session_column', 'Condition_column', 'Condition_tags', 'Condition_names', ...
      'Paired_tests', 'Stats_level', 'n_permutations', 'n_bootstraps', 'CortexDirection');
 
 %% B: RUN LEADING EIGENVECTOR DYNAMICS ANALYSIS
@@ -215,6 +228,12 @@ if strcmpi(Condition_source,'none')
 else
     [Index_Conditions,Condition_tags] = LEiDA_conditions(leida_results,Condition_source,...
         Condition_tags,Metadata_file,Metadata_subject_column,Metadata_session_column,Condition_column);
+    if ~isempty(Condition_names)
+        if numel(Condition_names) ~= numel(Condition_tags)
+            error('LEiDA:conditions','Condition_names must have one name per condition in Condition_tags');
+        end
+        Condition_tags = Condition_names(:)';
+    end
 
     % Compute the fractional occupancy and perform hypothesis tests
     LEiDA_stats_FracOccup(leida_results,Index_Conditions,Condition_tags,Paired_tests,n_permutations,n_bootstraps,Stats_level);

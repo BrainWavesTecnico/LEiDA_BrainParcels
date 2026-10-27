@@ -10,7 +10,10 @@ function results = LEiDA_compare_conditions(X,Index_Conditions,subjects,cond,pai
 % subjects          (n_scans x 1) subject ID of each scan
 % cond              (1 x n_Cond) name of each condition
 % pair              0, unpaired samples; 1, paired samples (the scans of
-%                   the same subject in both conditions are paired)
+%                   the same subject in both conditions are paired);
+%                   'auto', paired for the pairs of conditions that share
+%                   subjects (e.g. two sessions of the same patients) and
+%                   unpaired for the others (e.g. controls vs patients)
 % stats_level       'subject': the values of all the scans of a subject in
 %                   a condition are averaged, so that each subject counts
 %                   once (recommended when subjects have several scans);
@@ -30,6 +33,7 @@ function results = LEiDA_compare_conditions(X,Index_Conditions,subjects,cond,pai
 % results.n             (n_pairs x 2) number of observations in each
 %                       condition (subjects/scans or pairs)
 % results.cond_pairs    (n_pairs x 2) conditions compared in each pair
+% results.paired        (n_pairs x 1) 1 if the pair was tested as paired
 %
 % Author: Joana Cabral, University of Minho, joanacabral@med.uminho.pt
 
@@ -46,6 +50,7 @@ results.effectsize_signed = zeros(n_pairs,M);
 results.effectsize_ci = NaN(n_pairs,M,2);
 results.n = zeros(n_pairs,2);
 results.cond_pairs = zeros(n_pairs,2);
+results.paired = zeros(n_pairs,1);
 
 cond_pair = 1;
 for cond1 = 1:n_Cond-1
@@ -54,7 +59,17 @@ for cond1 = 1:n_Cond-1
         [A,subj1] = Select_condition(X,Index_Conditions == cond1,subjects,stats_level);
         [B,subj2] = Select_condition(X,Index_Conditions == cond2,subjects,stats_level);
 
-        if pair
+        % Paired or unpaired test for this pair of conditions
+        if ischar(pair) || isstring(pair)
+            if ~strcmpi(pair,'auto')
+                error('LEiDA:stats','Paired_tests must be 0, 1 or ''auto''');
+            end
+            paired = any(ismember(subj1,subj2));
+        else
+            paired = logical(pair);
+        end
+
+        if paired
             % Pair the observations of the same subject in both conditions
             if numel(unique(subj1)) < numel(subj1) || numel(unique(subj2)) < numel(subj2)
                 error('LEiDA:stats',['Some subjects have more than one scan in ''%s'' or ''%s''; ' ...
@@ -64,12 +79,12 @@ for cond1 = 1:n_Cond-1
             n_out = numel(subj1) + numel(subj2) - 2*numel(i1);
             A = A(i1,:);
             B = B(i2,:);
-            msg = [num2str(numel(i1)) ' paired subjects'];
+            msg = ['paired t, ' num2str(numel(i1)) ' subjects'];
             if n_out
                 msg = [msg ' (' num2str(n_out) ' subjects without both conditions excluded)']; %#ok<AGROW>
             end
         else
-            msg = [num2str(size(A,1)) ' vs ' num2str(size(B,1)) ' ' stats_level 's'];
+            msg = ['Welch''s t, ' num2str(size(A,1)) ' vs ' num2str(size(B,1)) ' ' stats_level 's'];
             if any(ismember(subj1,subj2))
                 msg = [msg ' (Attention: some subjects are in both conditions; ' ...
                        'observations are not independent, consider paired tests)']; %#ok<AGROW>
@@ -77,7 +92,7 @@ for cond1 = 1:n_Cond-1
         end
         disp(['- ' cond{cond1} ' vs ' cond{cond2} ': ' msg])
 
-        stats = permutation_test(A,B,pair,n_permutations,n_bootstraps);
+        stats = permutation_test(A,B,paired,n_permutations,n_bootstraps);
 
         results.pval(cond_pair,:) = min(stats.pvals,[],1);
         results.pval2sided(cond_pair,:) = stats.pvals_2sided;
@@ -87,6 +102,7 @@ for cond1 = 1:n_Cond-1
         results.effectsize_ci(cond_pair,:,:) = permute(stats.eff_ci,[3 2 1]);
         results.n(cond_pair,:) = stats.n;
         results.cond_pairs(cond_pair,:) = [cond1 cond2];
+        results.paired(cond_pair) = paired;
         cond_pair = cond_pair + 1;
     end
 end

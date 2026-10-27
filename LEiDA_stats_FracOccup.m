@@ -10,7 +10,8 @@ function LEiDA_stats_FracOccup(data_dir,Index_Conditions,cond,pair,n_permutation
 % Index_Conditions  (1 x n_scans) condition of each scan (0: none)
 % cond              tags of each condition considered in the experiment
 % pair              0, unpaired samples (Welch's t); 1, paired samples
-%                   (same subjects across conditions)
+%                   (same subjects across conditions); 'auto', paired only
+%                   for the pairs of conditions that share subjects
 % n_permutations    number of permutations
 % n_bootstraps      number of bootstrap samples for the 95% confidence
 %                   interval of the effect size (0 to skip)
@@ -76,12 +77,7 @@ clear Kmeans_results
 
 %% PERMUTATION TESTS
 
-if pair
-    test_name = 'paired t';
-else
-    test_name = 'Welch''s t';
-end
-disp(['Testing differences in fractional occupancy between conditions (' test_name ', ' ...
+disp(['Testing differences in fractional occupancy between conditions (' ...
       num2str(n_permutations) ' permutations, observations: ' stats_level 's):'])
 
 results = LEiDA_compare_conditions(reshape(P,N_scans,[]),Index_Conditions,Subjects,cond,pair,...
@@ -96,6 +92,7 @@ effectsize = reshape(results.effectsize,dims);
 effectsize_signed = reshape(results.effectsize_signed,dims);
 effectsize_ci = reshape(results.effectsize_ci,[dims 2]);
 n_obs = results.n;
+paired_test = results.paired;
 
 % Name of the file to save output
 save_file = 'LEiDA_Stats_FracOccup.mat';
@@ -103,7 +100,7 @@ save_file = 'LEiDA_Stats_FracOccup.mat';
 % Save K-means clustering solutions results:
 save(fullfile(data_dir,save_file),'P','P_pval','P_pval2sided','P_tstat','effectsize',...
      'effectsize_signed','effectsize_ci','n_obs','cond','rangeK','file_cluster','file_V1',...
-     'Index_Conditions','Subjects','pair','stats_level','n_permutations','n_bootstraps')
+     'Index_Conditions','Subjects','pair','paired_test','stats_level','n_permutations','n_bootstraps')
 
 disp(' ')
 disp(['Fractional occupancy values and results from permutation tests saved successfully as ' save_file])

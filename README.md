@@ -68,10 +68,11 @@ Input parameters:
 - ***Metadata_session_column***: column with the session IDs (e.g. `ses-midcycle`); `''` if there is only one scan per subject;
 - ***Condition_column***: column with the condition of each scan (or `'sheet'`);
 - ***Condition_tags***: conditions to compare (tags in the file names, or values of *Condition_column*). Scans not belonging to any of these conditions are left out of the statistics. With `'metadata'`, leave `{}` to use all values found;
+- ***Condition_names***: names of the conditions shown in the figures, in the same order as *Condition_tags* (`{}` to use *Condition_tags*), e.g. `{'Controls','Interictal','Ictal'}` for `Condition_tags = {'sub-control','ses-interictal','ses-ictal'}`;
 
 *Statistics and figures*
 
-- ***Paired_tests***: experimental paradigm. 0 (unpaired): subjects in different conditions are not the same; the test statistic is Welch's t, which does not assume equal variances. 1 (paired): the same subjects are scanned in all conditions; the scans of each subject are paired by subject ID and the test statistic is the paired t;
+- ***Paired_tests***: experimental paradigm. 0 (unpaired): subjects in different conditions are not the same; the test statistic is Welch's t, which does not assume equal variances. 1 (paired): the same subjects are scanned in all conditions; the scans of each subject are paired by subject ID and the test statistic is the paired t. `'auto'`: for each pair of conditions, paired if the two conditions share subjects (e.g. interictal vs ictal sessions of the same patients) and unpaired otherwise (e.g. controls vs patients);
 - ***Stats_level***: `'subject'` to average the scans of each subject within a condition, so that each subject counts once (recommended when subjects have several scans per condition), or `'scan'` to treat each scan as an independent observation;
 - ***n_permutations***: number of permutations. The smallest possible p-value is 1/(n_permutations+1), so at least ~4200 permutations are needed to reach the strictest threshold 0.05/sum(rangeK) for K = 2:20 (e.g. 1000 for a first quick analysis, 10000 for final results);
 - ***n_bootstraps***: number of bootstrap samples for the 95% confidence interval of the effect sizes (0 to skip, e.g. 1000 for final results);
