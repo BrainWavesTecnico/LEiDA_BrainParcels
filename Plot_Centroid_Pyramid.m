@@ -1,7 +1,13 @@
-function Plot_Centroid_Pyramid(data_dir,cond,parcellation,n_areas,cortex_dir)
+function Plot_Centroid_Pyramid(data_dir,cond,parcellation,n_areas,cortex_dir,stat_of_interest)
 %
 % Plot of the rendered centroids on cortical space and overlap with Yeo
-% functional brain networks (Yeo et al. 2011)
+% functional brain networks (Yeo et al. 2011). If the fractional occupancy
+% statistics are available (LEiDA_Stats_FracOccup.mat), the mean +- SEM
+% fractional occupancy of each condition is plotted next to each brain, and
+% the FC states with significant differences between the pair of
+% conditions stat_of_interest are marked with asterisks and colors:
+% * (dark red) p<0.05, ** (dark green) p<0.05/K, *** (dark blue)
+% p<0.05/sum(rangeK)
 %
 % INPUT:
 % data_dir      directory where the centroids obtained for each clustering
@@ -13,6 +19,8 @@ function Plot_Centroid_Pyramid(data_dir,cond,parcellation,n_areas,cortex_dir)
 % n_areas       number of areas of the parcellation to be considered
 %               ([] to use the number of areas of the centroids)
 % cortex_dir    direction of observation of the rendering of the FC states
+% stat_of_interest  index of the pair of conditions whose p-values are
+%               shown (pairs ordered 1-2, 1-3, ..., 2-3, ...; default 1)
 %
 % OUTPUT:
 % Fig           FC states rendered on a transparent cortex with their
@@ -44,16 +52,47 @@ if n_areas > N_parcels
     return
 end
 
-% Number of conditions of the experiment
-n_Cond = size(cond,2);
+if nargin < 6 || isempty(stat_of_interest)
+    stat_of_interest = 1;
+end
 
-% If n_Cond == 2 mark the significant FC states according to FracOccup
+% Number of conditions of the experiment
+n_Cond = numel(cond);
+
+% Fractional occupancy statistics (output from LEiDA_stats_FracOccup.m)
 file_FracOccup = 'LEiDA_Stats_FracOccup.mat';
-if n_Cond == 2 % Load 2-sided pvals from FracOccup hypothesis tests
-    if isfile([data_dir file_FracOccup])
-        load([data_dir file_FracOccup], 'P_pval2sided');
-        P_pval2sided = squeeze(P_pval2sided);
+plot_FO = n_Cond >= 2 && isfile([data_dir file_FracOccup]);
+if plot_FO
+    load([data_dir file_FracOccup], 'P', 'P_pval2sided', 'Index_Conditions', 'Subjects', 'stats_level');
+    if ~exist('stats_level','var')
+        stats_level = 'scan';
     end
+
+    % Pair of conditions whose p-values are shown
+    % (pairs ordered as in LEiDA_compare_conditions: 1-2, 1-3, ..., 2-3, ...)
+    [cond2,cond1] = find(triu(ones(n_Cond),1)');
+    stat_tag = [cond{cond1(stat_of_interest)} '-' cond{cond2(stat_of_interest)}];
+    disp(['P-values reported for ' cond{cond1(stat_of_interest)} ' vs ' cond{cond2(stat_of_interest)}])
+    P_pval2sided = reshape(P_pval2sided(stat_of_interest,:,:),size(P,2),size(P,3));
+
+    % Mean and SEM of the fractional occupancy in each condition (over
+    % subjects, averaging the scans of each subject, if stats_level is
+    % 'subject', as in the statistical tests)
+    mean_P = zeros(n_Cond,size(P,2),size(P,3));
+    sem_P = zeros(n_Cond,size(P,2),size(P,3));
+    for j = 1:n_Cond
+        P_j = reshape(P(Index_Conditions == j,:,:),nnz(Index_Conditions == j),[]);
+        if strcmpi(stats_level,'subject')
+            [~,~,g] = unique(Subjects(Index_Conditions == j));
+            P_j = splitapply(@(x) mean(x,1),P_j,g);
+        end
+        mean_P(j,:,:) = reshape(mean(P_j,1),size(P,2),size(P,3));
+        sem_P(j,:,:) = reshape(std(P_j,0,1)/sqrt(size(P_j,1)),size(P,2),size(P,3));
+    end
+    % Two subplots per FC state: brain and fractional occupancy
+    n_cols = 2*rangeK(end);
+else
+    n_cols = rangeK(end);
 end
 
 disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOT CENTROIDS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
@@ -109,12 +148,11 @@ for k = 1:length(rangeK)
         end 
         sregion = smooth3(Centroid_Vol > 0);
         
-        % View networks (use different sizes depending on number of
-        % conditions)
-        if isfile([data_dir file_FracOccup]) && n_Cond == 2
-            subplot_tight(length(rangeK),rangeK(end),Centroid+(k-1)*rangeK(end),0.01)
+        % View networks
+        if plot_FO
+            subplot_tight(length(rangeK),n_cols,2*Centroid-1+(k-1)*n_cols,0.01)
         else
-            subplot_tight(length(rangeK),rangeK(end),Centroid+(k-1)*rangeK(end),0.008)
+            subplot_tight(length(rangeK),n_cols,Centroid+(k-1)*n_cols,0.008)
         end
              
         hold on
@@ -146,10 +184,11 @@ for k = 1:length(rangeK)
         zlim([10 80])
         axis off
         
-        % If only 2 conditions, mark the FC states with significant
-        % differences in fractional occupancy with asterisks:
+        % Mark the FC states with significant differences in fractional
+        % occupancy with asterisks and plot the fractional occupancy of each
+        % condition (mean +- SEM) next to the brain:
         % * p<0.05, ** p<0.05/K, *** p<0.05/sum(rangeK)
-        if isfile([data_dir file_FracOccup]) && n_Cond == 2
+        if plot_FO
             pval = P_pval2sided(k,Centroid);
             if pval <= 0.05/sum(rangeK)
                 stars = '***'; star_color = darkBlue;
@@ -158,7 +197,7 @@ for k = 1:length(rangeK)
             elseif pval <= 0.05
                 stars = '*'; star_color = darkRed;
             else
-                stars = '';
+                stars = ''; star_color = 'k';
             end
             if ~isempty(stars)
                 % Asterisks just above the brain (vertical position in
@@ -166,12 +205,31 @@ for k = 1:length(rangeK)
                 text(0.5,star_height,stars,'Units','normalized','HorizontalAlignment','center',...
                      'VerticalAlignment','middle','Fontsize',16,'FontWeight','bold','Color',star_color)
             end
+
+            % Fractional occupancy of each condition (error bars without bars)
+            subplot_tight(length(rangeK),n_cols,2*Centroid+(k-1)*n_cols,0.01)
+            errorbar(mean_P(:,k,Centroid),sem_P(:,k,Centroid),'_','MarkerSize',2,'LineStyle','none',...
+                     'Color',star_color,'CapSize',4,'LineWidth',1);
+            set(gca,'color','none')
+            set(gca,'XTick',1:n_Cond,'XTickLabel','','YTick',[])
+            xlim([.4 n_Cond+.6])
+            box off
         end
     end
 end
-saveas(Fig, fullfile(data_dir, ['Centroid_Pyramid_' cortex_dir '.png']),'png');
-saveas(Fig, fullfile(data_dir, ['Centroid_Pyramid_' cortex_dir '.fig']),'fig');
-disp(['- Plot successfully saved as Centroid_Pyramid_' cortex_dir]);
+
+if plot_FO
+    % Legend of the fractional occupancy plots
+    annotation('textbox',[0.005 0 0.9 0.025],'EdgeColor','none','Interpreter','none','FontSize',10,...
+        'String',['Fractional occupancy (mean ' char(177) ' SEM over ' stats_level 's) of ' strjoin(cond,', ') ...
+                  ' (left to right). Significance (' cond{cond1(stat_of_interest)} ' vs ' ...
+                  cond{cond2(stat_of_interest)} '): * p<0.05, ** p<0.05/K, *** p<0.05/' num2str(sum(rangeK))])
+    save_name = ['Centroid_Pyramid_' regexprep(stat_tag,'[^a-zA-Z0-9_-]','_') '_' cortex_dir];
+else
+    save_name = ['Centroid_Pyramid_' cortex_dir];
+end
+saveas(Fig, fullfile(data_dir, [save_name '.png']),'png');
+saveas(Fig, fullfile(data_dir, [save_name '.fig']),'fig');
+disp(['- Plot successfully saved as ' save_name]);
 
 disp(' ')
-        
