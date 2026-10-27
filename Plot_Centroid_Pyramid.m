@@ -64,8 +64,8 @@ disp(' ')
 disp('Computing overlap of centroids (PL states) with Yeo resting state networks')
 [cc_V_yeo7, p_V_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
 
-% Color of the 7 Yeo networks (Visual, Somatomotor, Dorsal Att., Ventral Att., Limbic, Frontoparietal, Default Mode)
-YeoColor = [180 115 208; 76 112 210; 100 174 117; 230 150 200; 207 225 185; 250 221 107; 227 120 91]./256;
+% Colors of the 7 Yeo et al. (2011) networks (defined in Yeo_colors.m)
+YeoColor = Yeo_colors;
 
 % Colors of the significance levels: p<0.05, p<0.05/K and p<0.05/sum(K)
 darkRed = [0.6, 0, 0];

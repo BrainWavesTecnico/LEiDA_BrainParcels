@@ -52,8 +52,8 @@ n_areas = size(V,2);
 Brain_Mask = niftiread('MNI152_T1_2mm_brain_mask.nii');
 scortex = smooth3(Brain_Mask > 0);
 
-% Color code from paper Yeo et al., 2011
-YeoColor = [125 50 125; 50 50 200; 0 118 14; 196 58 250; 150 200 100; 256 175 25; 240 90 0]./256;
+% Colors of the 7 Yeo et al. (2011) networks (defined in Yeo_colors.m)
+YeoColor = Yeo_colors;
 Patch_thr=0.5;
 
 % Compute the overlap between cluster centroids obtained for each value of
