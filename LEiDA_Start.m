@@ -123,17 +123,29 @@ Condition_column = 'sheet';
 Condition_tags = {'controls','patients'};
 
 % ------------------------------ STATISTICS -------------------------------
-% Choose 0 (unpaired) if subjects in different conditions are not the
-% same; or 1 (paired) if subjects are the same across conditions.
+% Differences between conditions are tested with permutation tests:
+%   0 (unpaired): subjects in different conditions are not the same.
+%      Statistic: Welch's t (does not assume equal variances).
+%   1 (paired): the same subjects are scanned in both conditions; each
+%      subject's scans in the two conditions are paired by subject ID.
+%      Statistic: paired t.
 Paired_tests = 0;
-% Number of permutations. For the first analysis to be relatively quick,
-% choose like 500, but then increase to 10000 to increase the precision of
-% the final statistical results for publication.
-n_permutations = 500;
-% Number of bootstraps within each permutation. For the first analysis to
-% be relatively quick, choose 1, but then increase (e.g. 500) for the
-% final results to be more precise.
-n_bootstraps = 1;
+% Observations used in the tests:
+%   'subject': the scans of each subject in a condition are averaged, so
+%              each subject counts once (recommended when subjects have
+%              more than one scan per condition, and required for paired
+%              tests if they do)
+%   'scan'   : each scan is treated as an independent observation
+Stats_level = 'subject';
+% Number of permutations. The smallest p-value that can be obtained is
+% 1/(n_permutations+1). To reach the strictest threshold, 0.05/sum(rangeK)
+% (= 2.4e-4 for K = 2:20, i.e. ***), more than 4200 permutations are
+% needed. For a first quick analysis choose like 1000, and 10000 or more
+% for the final results.
+n_permutations = 1000;
+% Number of bootstrap samples for the 95% confidence interval of the effect
+% sizes (0 to skip; e.g. 1000 for the final results).
+n_bootstraps = 0;
 
 % -------------------------------- FIGURES --------------------------------
 % Direction to plot the FC states/brain ('SideView' or 'TopView'):
@@ -170,7 +182,7 @@ save([leida_results 'LEiDA_Parameters.mat'], 'Data_directory', 'Data_space', ...
      'Parcellation', 'N_areas', 'TR', 'apply_filter', 'flp', 'fhi', 'rangeK', ...
      'Condition_source', 'Metadata_file', 'Metadata_subject_column', ...
      'Metadata_session_column', 'Condition_column', 'Condition_tags', ...
-     'Paired_tests', 'n_permutations', 'n_bootstraps', 'CortexDirection');
+     'Paired_tests', 'Stats_level', 'n_permutations', 'n_bootstraps', 'CortexDirection');
 
 %% B: RUN LEADING EIGENVECTOR DYNAMICS ANALYSIS
 
@@ -205,7 +217,7 @@ else
         Condition_tags,Metadata_file,Metadata_subject_column,Metadata_session_column,Condition_column);
 
     % Compute the fractional occupancy and perform hypothesis tests
-    LEiDA_stats_FracOccup(leida_results,Index_Conditions,Condition_tags,Paired_tests,n_permutations,n_bootstraps);
+    LEiDA_stats_FracOccup(leida_results,Index_Conditions,Condition_tags,Paired_tests,n_permutations,n_bootstraps,Stats_level);
 
     % Generate and save the p-value and barplot plots for fractional occupancy
     Plot_FracOccup(leida_results)

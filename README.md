@@ -71,9 +71,10 @@ Input parameters:
 
 *Statistics and figures*
 
-- ***Paired_tests***: experimental paradigm (0: subjects in different conditions are not the same; 1: subjects are the same across conditions);
-- ***n_permutations***: number of permutations (e.g. 500 for a first quick analysis, 10000 for final results);
-- ***n_bootstraps***: number of bootstrap samples within each permutation (e.g. 1 for a first quick analysis, 500 for final results);
+- ***Paired_tests***: experimental paradigm. 0 (unpaired): subjects in different conditions are not the same; the test statistic is Welch's t, which does not assume equal variances. 1 (paired): the same subjects are scanned in all conditions; the scans of each subject are paired by subject ID and the test statistic is the paired t;
+- ***Stats_level***: `'subject'` to average the scans of each subject within a condition, so that each subject counts once (recommended when subjects have several scans per condition), or `'scan'` to treat each scan as an independent observation;
+- ***n_permutations***: number of permutations. The smallest possible p-value is 1/(n_permutations+1), so at least ~4200 permutations are needed to reach the strictest threshold 0.05/sum(rangeK) for K = 2:20 (e.g. 1000 for a first quick analysis, 10000 for final results);
+- ***n_bootstraps***: number of bootstrap samples for the 95% confidence interval of the effect sizes (0 to skip, e.g. 1000 for final results);
 - ***CortexDirection***: direction to plot the FC states/brain (`'SideView'` or `'TopView'`);
 - ***Run_eigenvectors***, ***Run_clustering***: set to 0 to reuse the eigenvectors and clusters computed in a previous run (e.g. to test a new study design).
 
@@ -89,6 +90,18 @@ Output:
 - Computes the fractional occupancy, performs hypothesis (permutation) tests to compare the mean fractional occupancy across conditions and saves the results in the file *LEiDA_Stats_FracOccup.mat*;
 - Plots figure with two-sided p-values obtained from the comparison of the mean fractional occupancy, plots figures with barplots of the fractional occupancy values and saves the figures in png and fig format;
 - Plots the PL states (centroids) obtained by clustering the leading eigenvectors and saves the figure in png and fig format;
+
+---
+
+## Statistics
+
+Differences between each pair of conditions are tested for each FC state and each K with permutation tests (*permutation_test.m*, called through *LEiDA_compare_conditions.m*):
+
+- **Unpaired** samples: Welch's t statistic; the null distribution is obtained by randomly permuting the condition labels;
+- **Paired** samples: paired t statistic; the null distribution is obtained by randomly swapping the condition labels within each subject (sign flips of the differences);
+- The p-values are counted directly from the permutation distribution, p = (1 + number of permuted statistics at least as extreme as the observed one) / (1 + n_permutations), without fitting the null distribution;
+- Effect size: Hedges' g (unpaired) or g_z (paired), with a 95% bootstrap (percentile) confidence interval if *n_bootstraps* > 0;
+- Significance levels shown in the figures: \* p < 0.05, \*\* p < 0.05/K, \*\*\* p < 0.05/sum(rangeK).
 
 ---
 

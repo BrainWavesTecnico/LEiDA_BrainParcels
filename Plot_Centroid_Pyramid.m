@@ -71,6 +71,9 @@ YeoColor = Yeo_colors;
 darkRed = [0.6, 0, 0];
 darkGreen = [0.3, 0.5, 0];
 darkBlue = [0.07, 0.62, 1.00];
+% Vertical position of the significance asterisks above each brain
+% (normalized axes units: 1 is the top of the axes)
+star_height = 0.95;
 
 % LEiDA networks colored according to closest RSN
 Volume = struct2array(load('ParcelsMNI2mm',['V_' parcellation])); 
@@ -149,11 +152,19 @@ for k = 1:length(rangeK)
         if isfile([data_dir file_FracOccup]) && n_Cond == 2
             pval = P_pval2sided(k,Centroid);
             if pval <= 0.05/sum(rangeK)
-                title('***','Fontsize',8,'FontWeight','bold','Color',darkBlue)
+                stars = '***'; star_color = darkBlue;
             elseif pval <= 0.05/rangeK(k)
-                title('**','Fontsize',8,'FontWeight','bold','Color',darkGreen)
+                stars = '**'; star_color = darkGreen;
             elseif pval <= 0.05
-                title('*','Fontsize',8,'FontWeight','bold','Color',darkRed)
+                stars = '*'; star_color = darkRed;
+            else
+                stars = '';
+            end
+            if ~isempty(stars)
+                % Asterisks just above the brain (vertical position in
+                % normalized axes units; decrease to move them down)
+                text(0.5,star_height,stars,'Units','normalized','HorizontalAlignment','center',...
+                     'VerticalAlignment','middle','Fontsize',16,'FontWeight','bold','Color',star_color)
             end
         end
     end

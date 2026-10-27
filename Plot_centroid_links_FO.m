@@ -174,8 +174,9 @@ for k = 1:numel(p_vals)
         stars = '';
     end
 
-    % Hedge's effect size between the two conditions of this pair (same
-    % formula as in bootstrap_within_permutation_ttest2.m)
+    % Effect size between the two conditions of this pair (difference of
+    % means / pooled standard deviation; permutation_test.m also applies
+    % the small-sample correction of Hedges' g)
     x1 = P_cond{round(X_locations(k,1))};
     x2 = P_cond{round(X_locations(k,2))};
     n1 = numel(x1);

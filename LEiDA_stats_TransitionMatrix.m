@@ -17,17 +17,14 @@ function LEiDA_stats_TransitionMatrix(data_dir,save_dir,selectedK)
 %                participants
 % TM_pval2sided  two-sided p-value from testing whether the mean transition
 %                probability of a given FC state differs between conditions      
-% effectsize    Hedge's effect size
-% levene_pval   p-value obtained from computing the Levene's test on the
-%               state-to-state transition probability values
+% effectsize    absolute Hedges' effect size
+%
+% The statistical options (paired/unpaired, number of permutations and
+% bootstraps, subject or scan level) are the ones used in
+% LEiDA_stats_FracOccup (see LEiDA_compare_conditions.m)
 %
 % Author: Joana Cabral, University of Minho, joanacabral@med.uminho.pt
 %         Miguel Farinha, ICVS/2CA-Braga, miguel.farinha@ccabraga.pt
-
-% Default number of permutations
-n_permutations = 5000;
-% Default number of bootstrap samples within each permutation sample
-n_bootstraps = 100;
 
 % File with leading eigenvectors (output from LEiDA_data.m)
 file_V1 = 'LEiDA_EigenVectors.mat';
@@ -38,14 +35,16 @@ file_P = 'LEiDA_Stats_FracOccup.mat';
 
 % Load required data:
 if isfile([data_dir file_V1])
-    load([data_dir file_V1], 'Time_sessions', 'idx_data');
+    load([data_dir file_V1], 'Time_sessions', 'idx_data', 'Scan_info');
 end
 if isfile([data_dir file_cluster])
     load([data_dir file_cluster], 'Kmeans_results', 'rangeK');
 end
 if isfile([data_dir file_P])
-    load([data_dir file_P], 'cond', 'P', 'Index_Conditions', 'pair');
+    load([data_dir file_P], 'cond', 'P', 'Index_Conditions', 'pair', ...
+         'stats_level', 'n_permutations', 'n_bootstraps');
 end
+Subjects = Scan_info.subject(idx_data);
 
 % Number of scans considered to compute V1
 N_scans = length(idx_data);
@@ -61,7 +60,7 @@ disp(' ')
 %% CALCULATE THE TRANSITION MATRIX FOR THE OPTIMAL K
 
 % Matrix with probability of occurrence of each FC state for chosen K
-P_K = squeeze(P(:,selectedK-1,1:selectedK));
+P_K = squeeze(P(:,rangeK == selectedK,1:selectedK));
 
 % Transition probability matrix
 TM = zeros(N_scans, selectedK, selectedK);
@@ -99,88 +98,25 @@ end
 
 clear Kmeans_results
 
-%% CHECK HOMOGENEITY OF VARIANCES USING LEVENE'S TEST
+%% PERMUTATION TESTS
 
-if pair == 0
-    
-    disp('Running Levene''s test of equality of variances to select the statistic to be used in the permutation tests')
-    % matrix to store p-value of Levene's test of equality of variances
-    levene_pval = zeros(n_Cond*(n_Cond-1)/2,selectedK,selectedK);
+disp('Testing differences in transition probabilities between conditions:')
+results = LEiDA_compare_conditions(reshape(TMnorm,N_scans,[]),Index_Conditions,Subjects,cond,pair,...
+                                   stats_level,n_permutations,n_bootstraps);
 
-    for c_out = 1:selectedK
-        for c_in = 1:selectedK
-            % disp(['- Transition from FC state ' num2str(c_out) ' to FC state ' num2str(c_in)])
-            cond_pair = 1;
-            for cond1 = 1:n_Cond-1
-                for cond2 = cond1+1:n_Cond
-                    a = squeeze(TMnorm(Index_Conditions == cond1,c_out,c_in));
-                    b = squeeze(TMnorm(Index_Conditions == cond2,c_out,c_in));
-                    
-                    data_vec = cat(1,a,b);
-                    % column vector with index of groups, SZ = 0 and HC = 1
-                    groups = cat(1,zeros(numel(a),1),ones(numel(b),1));
-                    % perform Levene Test of equality of variances (store p-value)
-                    levene_pval(cond_pair,c_out,c_in) = vartestn(data_vec,groups,'TestType','LeveneAbsolute','Display','off');
-                    cond_pair = cond_pair + 1;
-                end
-            end
-        end
-    end
-end
-
-%%  PERMUTATION STATISTICS WITH WITHIN BOOTSTRAP SAMPLES
-
-disp(' ')
-disp(['Attention: permutation tests take a considerable amount of time to run (' num2str(n_permutations) ' permutations).'])
-disp('Testing intergroup differences in transition probabilities:')
-
-% Store p-values and effect size
-TM_pval = zeros(n_Cond*(n_Cond-1)/2,selectedK,selectedK);
-TM_pval2sided = zeros(n_Cond*(n_Cond-1)/2,selectedK,selectedK);
-effectsize = zeros(n_Cond*(n_Cond-1)/2,selectedK,selectedK);
-
-for c_out = 1:selectedK 
-    for c_in = 1:selectedK
-        disp(['- From PL state ' num2str(c_out) ' to PL state ' num2str(c_in)])
-        cond_pair = 1;
-        for cond1 = 1:n_Cond-1
-            for cond2 = cond1+1:n_Cond
-                a = squeeze(TMnorm(Index_Conditions == cond1,c_out,c_in))';
-                a = rmmissing(a);
-                b = squeeze(TMnorm(Index_Conditions == cond2,c_out,c_in))';  % Vector containing Prob of c in condition 2
-                b = rmmissing(b);
-
-                if pair == 1
-                    % disp([cond{cond1} ' vs ' cond{cond2} ' (using paired-sample t-test statistic)'])
-                    stats = bootstrap_within_permutation_paired_samples([a,b],[ones(1,numel(a)) 2*ones(1,numel(b))],...,
-                                                                        n_permutations,n_bootstraps,0.05);
-                else      
-                    if levene_pval(cond_pair,c_out,c_in) < 0.05 % null hypothesis of homogeneity of variances rejected
-                        % disp([cond{cond1} ' vs ' cond{cond2} ' (using Welch''s t-test statistic)'])
-                        stats = bootstrap_within_permutation_ttest2([a,b],[ones(1,numel(a)) 2*ones(1,numel(b))],n_permutations,...,
-                                                                     n_bootstraps,0.05,'welchtest');
-                    else % null hypothesis of homegeneity of variances not rejected
-                        % disp([cond{cond1} ' vs ' cond{cond2} ' (using t-test statistic)'])
-                        stats = bootstrap_within_permutation_ttest2([a,b],[ones(1,numel(a)) 2*ones(1,numel(b))],n_permutations,...,
-                                                                     n_bootstraps,0.05,'ttest');
-                    end
-                end
-                
-                % p-values and effect size
-                TM_pval(cond_pair,c_out,c_in) = min(stats.pvals);
-                TM_pval2sided(cond_pair,c_out,c_in) = 2*min(stats.pvals);
-                effectsize(cond_pair,c_out,c_in) = stats.eff;
-                cond_pair = cond_pair + 1;
-            end
-        end
-    end
-end
+% Back to the format (condition pair x departure state x arrival state)
+dims = [size(results.pval,1) selectedK selectedK];
+TM_pval = reshape(results.pval,dims);
+TM_pval2sided = reshape(results.pval2sided,dims);
+effectsize = reshape(results.effectsize,dims);
+effectsize_signed = reshape(results.effectsize_signed,dims);
+effectsize_ci = reshape(results.effectsize_ci,[dims 2]);
 
 % Name of the file to save output
 save_file = 'LEiDA_Stats_TransitionMatrix.mat';
 
-save([save_dir '/' save_file],'TM','TMnorm','TM_pval','TM_pval2sided','effectsize','levene_pval',...,
-                              'cond','rangeK','file_V1','file_cluster','file_P','Index_Conditions')
+save(fullfile(save_dir,save_file),'TM','TMnorm','TM_pval','TM_pval2sided','effectsize',...
+     'effectsize_signed','effectsize_ci','cond','rangeK','file_V1','file_cluster','file_P','Index_Conditions')
 
 disp(' ')
 disp(['Transition probability values and results from permutation tests saved successfully as ' save_file])
