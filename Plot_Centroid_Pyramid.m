@@ -47,7 +47,7 @@ end
 % Number of conditions of the experiment
 n_Cond = size(cond,2);
 
-% If n_Cond == 2 color the title of the glass brains according to FracOccup
+% If n_Cond == 2 mark the significant FC states according to FracOccup
 file_FracOccup = 'LEiDA_Stats_FracOccup.mat';
 if n_Cond == 2 % Load 2-sided pvals from FracOccup hypothesis tests
     if isfile([data_dir file_FracOccup])
@@ -64,8 +64,13 @@ disp(' ')
 disp('Computing overlap of centroids (PL states) with Yeo resting state networks')
 [cc_V_yeo7, p_V_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
 
-% Color of the Yeo networks as in the original paper (Yeo et al., 2011)
-YeoColor = [120 18 134; 70 30 180; 0 118 14; 196 58 250; 220 248 164; 230 148 34; 205 62 78]./256;
+% Color of the 7 Yeo networks (Visual, Somatomotor, Dorsal Att., Ventral Att., Limbic, Frontoparietal, Default Mode)
+YeoColor = [180 115 208; 76 112 210; 100 174 117; 230 150 200; 207 225 185; 250 221 107; 227 120 91]./256;
+
+% Colors of the significance levels: p<0.05, p<0.05/K and p<0.05/sum(K)
+darkRed = [0.6, 0, 0];
+darkGreen = [0.3, 0.5, 0];
+darkBlue = [0.07, 0.62, 1.00];
 
 % LEiDA networks colored according to closest RSN
 Volume = struct2array(load('ParcelsMNI2mm',['V_' parcellation])); 
@@ -138,15 +143,17 @@ for k = 1:length(rangeK)
         zlim([10 80])
         axis off
         
-        if isfile([data_dir file_FracOccup]) && n_Cond == 2 % if only 2 conditions color the title of each brain according to pval from FracOccup hyp. tests
-            if P_pval2sided(k,Centroid) > 0.05
-                title(['p<' num2str(P_pval2sided(k,Centroid)*10,'%1.0e')],'Fontsize',5,'Color','k')
-            elseif P_pval2sided(k,Centroid) < 0.05 && P_pval2sided(k,Centroid) > (0.05/rangeK(k))
-                title(['p<' num2str(P_pval2sided(k,Centroid)*10,'%1.0e')],'Fontsize',5,'Color','r')
-            elseif P_pval2sided(k,Centroid) < 0.05/rangeK(k) && P_pval2sided(k,Centroid) > (0.05/sum(rangeK))
-                title(['p<' num2str(P_pval2sided(k,Centroid)*10,'%1.0e')],'Fontsize',5,'Color','g')
-            elseif P_pval2sided(k,Centroid) <= (0.05/sum(rangeK))
-                title(['p<' num2str(P_pval2sided(k,Centroid)*10,'%1.0e')],'Fontsize',5,'Color','b')
+        % If only 2 conditions, mark the FC states with significant
+        % differences in fractional occupancy with asterisks:
+        % * p<0.05, ** p<0.05/K, *** p<0.05/sum(rangeK)
+        if isfile([data_dir file_FracOccup]) && n_Cond == 2
+            pval = P_pval2sided(k,Centroid);
+            if pval <= 0.05/sum(rangeK)
+                title('***','Fontsize',8,'FontWeight','bold','Color',darkBlue)
+            elseif pval <= 0.05/rangeK(k)
+                title('**','Fontsize',8,'FontWeight','bold','Color',darkGreen)
+            elseif pval <= 0.05
+                title('*','Fontsize',8,'FontWeight','bold','Color',darkRed)
             end
         end
     end
