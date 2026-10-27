@@ -139,7 +139,7 @@ Paired_tests = 0;
 Stats_level = 'subject';
 % Number of permutations. The smallest p-value that can be obtained is
 % 1/(n_permutations+1). To reach the strictest threshold, 0.05/sum(rangeK)
-% (= 2.4e-4 for K = 2:20, i.e. ***), more than 4200 permutations are
+% (= 2.4e-4 for K = 2:20), more than 4200 permutations are
 % needed. For a first quick analysis choose like 1000, and 10000 or more
 % for the final results.
 n_permutations = 1000;

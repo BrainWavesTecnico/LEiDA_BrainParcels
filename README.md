@@ -101,7 +101,7 @@ Differences between each pair of conditions are tested for each FC state and eac
 - **Paired** samples: paired t statistic; the null distribution is obtained by randomly swapping the condition labels within each subject (sign flips of the differences);
 - The p-values are counted directly from the permutation distribution, p = (1 + number of permuted statistics at least as extreme as the observed one) / (1 + n_permutations), without fitting the null distribution;
 - Effect size: Hedges' g (unpaired) or g_z (paired), with a 95% bootstrap (percentile) confidence interval if *n_bootstraps* > 0;
-- Significance levels shown in the figures: \* p < 0.05, \*\* p < 0.05/K, \*\*\* p < 0.05/sum(rangeK).
+- Significance levels shown in the figures (colors): p < 0.05 (dark red), p < 0.05/K (dark green), p < 0.05/sum(rangeK) (dark blue).
 
 ---
 

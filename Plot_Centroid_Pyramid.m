@@ -4,10 +4,9 @@ function Plot_Centroid_Pyramid(data_dir,cond,parcellation,n_areas,cortex_dir,sta
 % functional brain networks (Yeo et al. 2011). If the fractional occupancy
 % statistics are available (LEiDA_Stats_FracOccup.mat), the mean +- SEM
 % fractional occupancy of each condition is plotted next to each brain, and
-% the FC states with significant differences between the pair of
-% conditions stat_of_interest are marked with asterisks and colors:
-% * (dark red) p<0.05, ** (dark green) p<0.05/K, *** (dark blue)
-% p<0.05/sum(rangeK)
+% the error bars are colored according to the significance of the
+% difference between the pair of conditions stat_of_interest: dark red
+% p<0.05, dark green p<0.05/K, dark blue p<0.05/sum(rangeK)
 %
 % INPUT:
 % data_dir      directory where the centroids obtained for each clustering
@@ -110,9 +109,6 @@ YeoColor = Yeo_colors;
 darkRed = [0.6, 0, 0];
 darkGreen = [0.3, 0.5, 0];
 darkBlue = [0.07, 0.62, 1.00];
-% Vertical position of the significance asterisks above each brain
-% (normalized axes units: 1 is the top of the axes)
-star_height = 0.95;
 
 % LEiDA networks colored according to closest RSN
 Volume = struct2array(load('ParcelsMNI2mm',['V_' parcellation])); 
@@ -184,32 +180,25 @@ for k = 1:length(rangeK)
         zlim([10 80])
         axis off
         
-        % Mark the FC states with significant differences in fractional
-        % occupancy with asterisks and plot the fractional occupancy of each
-        % condition (mean +- SEM) next to the brain:
-        % * p<0.05, ** p<0.05/K, *** p<0.05/sum(rangeK)
+        % Plot the fractional occupancy of each condition (mean +- SEM)
+        % next to the brain, colored by the significance of the difference:
+        % p<0.05, p<0.05/K, p<0.05/sum(rangeK)
         if plot_FO
             pval = P_pval2sided(k,Centroid);
             if pval <= 0.05/sum(rangeK)
-                stars = '***'; star_color = darkBlue;
+                sig_color = darkBlue;
             elseif pval <= 0.05/rangeK(k)
-                stars = '**'; star_color = darkGreen;
+                sig_color = darkGreen;
             elseif pval <= 0.05
-                stars = '*'; star_color = darkRed;
+                sig_color = darkRed;
             else
-                stars = ''; star_color = 'k';
-            end
-            if ~isempty(stars)
-                % Asterisks just above the brain (vertical position in
-                % normalized axes units; decrease to move them down)
-                text(0.5,star_height,stars,'Units','normalized','HorizontalAlignment','center',...
-                     'VerticalAlignment','middle','Fontsize',16,'FontWeight','bold','Color',star_color)
+                sig_color = 'k';
             end
 
             % Fractional occupancy of each condition (error bars without bars)
             subplot_tight(length(rangeK),n_cols,2*Centroid+(k-1)*n_cols,0.01)
             errorbar(mean_P(:,k,Centroid),sem_P(:,k,Centroid),'_','MarkerSize',2,'LineStyle','none',...
-                     'Color',star_color,'CapSize',4,'LineWidth',1);
+                     'Color',sig_color,'CapSize',4,'LineWidth',1);
             set(gca,'color','none')
             set(gca,'XTick',1:n_Cond,'XTickLabel','','YTick',[])
             xlim([.4 n_Cond+.6])
@@ -223,7 +212,7 @@ if plot_FO
     annotation('textbox',[0.005 0 0.9 0.025],'EdgeColor','none','Interpreter','none','FontSize',10,...
         'String',['Fractional occupancy (mean ' char(177) ' SEM over ' stats_level 's) of ' strjoin(cond,', ') ...
                   ' (left to right). Significance (' cond{cond1(stat_of_interest)} ' vs ' ...
-                  cond{cond2(stat_of_interest)} '): * p<0.05, ** p<0.05/K, *** p<0.05/' num2str(sum(rangeK))])
+                  cond{cond2(stat_of_interest)} '): dark red p<0.05, dark green p<0.05/K, dark blue p<0.05/' num2str(sum(rangeK))])
     save_name = ['Centroid_Pyramid_' regexprep(stat_tag,'[^a-zA-Z0-9_-]','_') '_' cortex_dir];
 else
     save_name = ['Centroid_Pyramid_' cortex_dir];
