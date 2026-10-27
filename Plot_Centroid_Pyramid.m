@@ -5,8 +5,9 @@ function Plot_Centroid_Pyramid(data_dir,cond,parcellation,n_areas,cortex_dir,sta
 % statistics are available (LEiDA_Stats_FracOccup.mat), the mean +- SEM
 % fractional occupancy of each condition is plotted next to each brain, and
 % the error bars are colored according to the significance of the
-% difference between the pair of conditions stat_of_interest: dark red
-% p<0.05, dark green p<0.05/K, dark blue p<0.05/sum(rangeK)
+% difference between the pair of conditions stat_of_interest, or between
+% any pair of conditions: dark red p<0.05, dark green p<0.05/K, dark blue
+% p<0.05/sum(rangeK)
 %
 % INPUT:
 % data_dir      directory where the centroids obtained for each clustering
@@ -19,7 +20,11 @@ function Plot_Centroid_Pyramid(data_dir,cond,parcellation,n_areas,cortex_dir,sta
 %               ([] to use the number of areas of the centroids)
 % cortex_dir    direction of observation of the rendering of the FC states
 % stat_of_interest  index of the pair of conditions whose p-values are
-%               shown (pairs ordered 1-2, 1-3, ..., 2-3, ...; default 1)
+%               shown (pairs ordered 1-2, 1-3, ..., 2-3, ...), or 'any'
+%               to color the states with a significant difference between
+%               any pair of conditions: the smallest p-value over all
+%               pairs, Bonferroni-corrected for the number of pairs.
+%               Default: 1 with 2 conditions, 'any' with more
 %
 % OUTPUT:
 % Fig           FC states rendered on a transparent cortex with their
@@ -51,12 +56,16 @@ if n_areas > N_parcels
     return
 end
 
-if nargin < 6 || isempty(stat_of_interest)
-    stat_of_interest = 1;
-end
-
 % Number of conditions of the experiment
 n_Cond = numel(cond);
+
+if nargin < 6 || isempty(stat_of_interest)
+    if n_Cond > 2
+        stat_of_interest = 'any';
+    else
+        stat_of_interest = 1;
+    end
+end
 
 % Fractional occupancy statistics (output from LEiDA_stats_FracOccup.m)
 file_FracOccup = 'LEiDA_Stats_FracOccup.mat';
@@ -67,12 +76,23 @@ if plot_FO
         stats_level = 'scan';
     end
 
-    % Pair of conditions whose p-values are shown
-    % (pairs ordered as in LEiDA_compare_conditions: 1-2, 1-3, ..., 2-3, ...)
+    % Pairs of conditions (ordered as in LEiDA_compare_conditions: 1-2,
+    % 1-3, ..., 2-3, ...) and p-values shown
     [cond2,cond1] = find(triu(ones(n_Cond),1)');
-    stat_tag = [cond{cond1(stat_of_interest)} '-' cond{cond2(stat_of_interest)}];
-    disp(['P-values reported for ' cond{cond1(stat_of_interest)} ' vs ' cond{cond2(stat_of_interest)}])
-    P_pval2sided = reshape(P_pval2sided(stat_of_interest,:,:),size(P,2),size(P,3));
+    n_pairs = numel(cond1);
+    if ischar(stat_of_interest) || isstring(stat_of_interest)
+        % Difference between any pair of conditions: smallest p-value over
+        % all pairs, Bonferroni-corrected for the number of pairs
+        stat_tag = strjoin(cond,'-');
+        sig_desc = ['any pair of ' strjoin(cond,', ') ', smallest p over ' num2str(n_pairs) ...
+                    ' pairs x ' num2str(n_pairs)];
+        P_pval2sided = reshape(min(min(P_pval2sided,[],1)*n_pairs,1),size(P,2),size(P,3));
+    else
+        stat_tag = [cond{cond1(stat_of_interest)} '-' cond{cond2(stat_of_interest)}];
+        sig_desc = [cond{cond1(stat_of_interest)} ' vs ' cond{cond2(stat_of_interest)}];
+        P_pval2sided = reshape(P_pval2sided(stat_of_interest,:,:),size(P,2),size(P,3));
+    end
+    disp(['P-values reported for ' sig_desc])
 
     % Mean and SEM of the fractional occupancy in each condition (over
     % subjects, averaging the scans of each subject, if stats_level is
@@ -211,8 +231,7 @@ if plot_FO
     % Legend of the fractional occupancy plots
     annotation('textbox',[0.005 0 0.9 0.025],'EdgeColor','none','Interpreter','none','FontSize',10,...
         'String',['Fractional occupancy (mean ' char(177) ' SEM over ' stats_level 's) of ' strjoin(cond,', ') ...
-                  ' (left to right). Significance (' cond{cond1(stat_of_interest)} ' vs ' ...
-                  cond{cond2(stat_of_interest)} '): dark red p<0.05, dark green p<0.05/K, dark blue p<0.05/' num2str(sum(rangeK))])
+                  ' (left to right). Significance (' sig_desc '): dark red p<0.05, dark green p<0.05/K, dark blue p<0.05/' num2str(sum(rangeK))])
     save_name = ['Centroid_Pyramid_' regexprep(stat_tag,'[^a-zA-Z0-9_-]','_') '_' cortex_dir];
 else
     save_name = ['Centroid_Pyramid_' cortex_dir];
