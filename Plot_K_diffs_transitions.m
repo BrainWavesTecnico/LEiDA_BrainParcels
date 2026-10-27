@@ -109,5 +109,3 @@ end
 saveas(Fig, fullfile(data_dir, ['K' num2str(selectedK) '_TransitionsDifferences.png']),'png');
 saveas(Fig, fullfile(data_dir, ['K' num2str(selectedK) '_TransitionsDifferences.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_TransitionsDifferences']);
-
-close all;

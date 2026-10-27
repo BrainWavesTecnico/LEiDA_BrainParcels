@@ -84,8 +84,6 @@ K_dir = [leida_res 'K' num2str(SelectK) '/'];
 
 %% ANALYSE K CENTROIDS SELECTED ACCORDING TO OUTPUT FROM LEiDA_Start
 
-% Close all open figures
-close all;
 
 disp(' ')
 disp(['%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FIGURES FOR K = ' num2str(SelectK) ' PL STATES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'])

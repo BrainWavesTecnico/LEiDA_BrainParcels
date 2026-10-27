@@ -80,5 +80,3 @@ end
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_OverlapYeoNets.png']),'png');
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_OverlapYeoNets.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_OverlapYeoNets']);
-
-close all;

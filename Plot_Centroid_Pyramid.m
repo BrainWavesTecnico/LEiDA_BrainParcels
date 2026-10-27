@@ -163,5 +163,4 @@ saveas(Fig, fullfile(data_dir, ['Centroid_Pyramid_' cortex_dir '.fig']),'fig');
 disp(['- Plot successfully saved as Centroid_Pyramid_' cortex_dir]);
 
 disp(' ')
-close all;
         

@@ -94,7 +94,6 @@ saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_ClusterBlocks.png']),'p
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_ClusterBlocks.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_ClusterBlocks']);
 
-close all;
 
 
 

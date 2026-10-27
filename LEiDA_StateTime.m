@@ -41,8 +41,6 @@ run_name = 'ABIDE_dparsf_AAL120';
 
 %% ANALYSE K CENTROIDS SELECTED ACCORDING TO OUTPUT FROM LEiDA_Start
 
-% Close all open figures
-close all;
 
 % Go to the directory containing the LEiDA functions
 cd(LEiDA_directory)

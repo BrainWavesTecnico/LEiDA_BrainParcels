@@ -256,4 +256,3 @@ saveas(Fig4, fullfile(data_dir, 'FracOccup_effetcsize.fig'),'fig');
 disp('- Plot successfully saved as FracOccup_effetcsize');
 
 disp(' ')
-close all;

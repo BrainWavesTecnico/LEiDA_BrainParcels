@@ -105,8 +105,6 @@ Vc_dir = [leida_res 'K' num2str(SelectK) 'C' num2str(Centroid) '/'];
 
 %% ANALYSE PL STATE OF INTEREST
 
-% Close all open figures
-close all;
 
 
 disp(' ')

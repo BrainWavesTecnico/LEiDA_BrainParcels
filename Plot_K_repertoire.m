@@ -232,4 +232,3 @@ saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_RepertoireSummary.png']
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_RepertoireSummary.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_RepertoireSummary']);
 
-close all;   

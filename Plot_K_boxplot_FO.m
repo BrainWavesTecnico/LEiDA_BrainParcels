@@ -134,4 +134,3 @@ saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_BoxplotFracOccup.png'])
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_BoxplotFracOccup.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_BoxplotFracOccup']);
 
-close all;

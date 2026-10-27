@@ -93,5 +93,4 @@ saveas(Fig, fullfile(K_dir, ['K' num2str(selectedK) '_V1_VoxelSlice.png']),'png'
 saveas(Fig, fullfile(K_dir, ['K' num2str(selectedK) '_V1_VoxelSlice.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_V1_VoxelSlice']);
 
-close all;
 

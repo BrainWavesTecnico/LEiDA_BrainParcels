@@ -40,8 +40,6 @@ run_name = 'ABIDE_dparsf_AAL120';
 
 %% COMPUTE TPM AND ANALYSE INTERGROUP DIFFERENCES IN TRANSITION PROBABILITIES FOR SELECTED K
 
-% Close all open figures
-close all;
 
 % Go to the directory containing the LEiDA functions
 cd(LEiDA_directory)

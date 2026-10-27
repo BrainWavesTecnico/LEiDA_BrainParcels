@@ -214,7 +214,6 @@ saveas(Fig, fullfile(save_dir, [file_name '.png']),'png');
 saveas(Fig, fullfile(save_dir, [file_name '.fig']),'fig');
 disp(['- Plot successfully saved as ' fullfile(save_dir, file_name)]);
 
-close all;
 
 end
 

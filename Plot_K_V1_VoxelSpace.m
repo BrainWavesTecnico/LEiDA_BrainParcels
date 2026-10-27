@@ -157,5 +157,3 @@ end
 saveas(Fig, fullfile(K_dir, ['K' num2str(selectedK) '_V1_VoxelSpace.png']),'png');
 saveas(Fig, fullfile(K_dir, ['K' num2str(selectedK) '_V1_VoxelSpace.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_V1_VoxelSpace']);
-
-close all;
