@@ -147,27 +147,22 @@ The plots are saved in new directory created according to the value defined for 
 
 ## LEiDA Analysis Centroid
 
-The function ***LEiDA_AnalysisCentroid.m*** should be used to analyse a PL state for a given value of K selected by the user. This function plots a number of relevant figures to analyse this PL state. This function is divided into two sections. The user is expected to only need to change the inputs in *Section A*.
+The function ***LEiDA_AnalysisCentroid.m*** analyses one FC state (centroid) obtained with *LEiDA_Start.m*, for example a state whose fractional occupancy differs between conditions in the centroid pyramid. The user is expected to only need to change the inputs in *Section A*; the parcellation and the statistics are read from the results of *LEiDA_Start.m*.
 
 Input parameters:
 
-- ***SelectK***: define the number of PL states (K) to consider for further analyses;
-- ***Centroid***: define the PL state to consider for further analyses (1 <= Centroid <= SelectK);
-- ***LEiDA_directory***: main directory of the LEiDA Toolbox; this should be a folder containing a folder (for example, designated LEiDA_Functions) which contains all the functions available in the toolbox;
-- ***run_name***: name of the current run to be used to create a folder to save the results from the LEiDA analyses;
-- ***Parcellation***: parcellation template applied to the segment the fMRI data;
+- ***Results_directory***, ***run_name***: as in *LEiDA_Start.m*;
+- ***Design_name***: study design whose statistics are shown (as in *LEiDA_Start.m*); `''` for the last design run;
+- ***SelectK***: number of FC states K;
+- ***Centroid***: FC state to analyse (1 <= Centroid <= SelectK).
 
-After filling the input parameters click *Run* on your Matlab dashboard.
+Output (*Plot_Centroid_Summary.m*), saved in the folder *K<SelectK>C<Centroid>* of the design:
 
-Output:
-
-- Plots several plots of the selected PL state:
-    - PL state in vector format with label of each brain area according to the specified parcellation;
-    - PL state in vector format with brain areas organised by contribution;
-    - Boxplot of the fractional occupancy values for the selected PL state;
-    - PL state in vector format, rendered in a 3D glass brain, in matrix format and boxplots of the fractional occupancy values;
-
-The plots are saved in new directory created according to the value of K and the specified PL state.
+- The FC state rendered in a transparent brain (side and top views), colored with the Yeo network assigned to it;
+- The strongest links between the areas with positive values in the centroid;
+- The overlap with each of the 7 Yeo networks: weighted Dice, largest Dice reachable with the parcellation, and fraction of the state within each network;
+- The areas of the FC state, ordered by their value in the centroid;
+- The fractional occupancy in each condition (one point per subject, or per scan), with lines joining the sessions of the same subject in paired comparisons, and the p-value, Hedges' g and its 95% bootstrap confidence interval for each pair of conditions.
 
 ---
 
