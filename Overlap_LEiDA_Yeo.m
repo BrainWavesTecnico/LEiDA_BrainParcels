@@ -28,7 +28,7 @@ function [dice_V_yeo7,overlap_yeo7,dice_max] = Overlap_LEiDA_Yeo(parcellation,n_
 % n_areas             number of areas of the parcellation considered
 % centroids           centroids obtained from K-means (Kmeans_results)
 % rangeK              range of clustering solutions
-% relative_threshold  minimum Dice relative to dice_max (default 0.5)
+% relative_threshold  minimum Dice relative to dice_max (default 0.4)
 % min_dice            minimum Dice (default 0.15)
 %
 % OUTPUT:
@@ -43,7 +43,7 @@ function [dice_V_yeo7,overlap_yeo7,dice_max] = Overlap_LEiDA_Yeo(parcellation,n_
 %         Miguel Farinha, University of Minho, miguel.farinha@ccabraga.org
 
 if nargin < 5 || isempty(relative_threshold)
-    relative_threshold = 0.5;
+    relative_threshold = 0.4;
 end
 if nargin < 6 || isempty(min_dice)
     min_dice = 0.15;
