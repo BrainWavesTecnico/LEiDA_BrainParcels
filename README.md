@@ -15,7 +15,7 @@
 
 Clone or download this repository into a folder. *LEiDA_Main* adds the folder with the toolbox functions to the Matlab path automatically.
 
-> Requires MATLAB R2020b or later, with the Statistics and Machine Learning Toolbox. The Image Processing Toolbox is needed only to parcellate data in MNI space that is not in the 2mm grid of the atlases, and the Parallel Computing Toolbox (optional) speeds up the clustering.
+> Requires MATLAB R2020b or later, with the Statistics and Machine Learning Toolbox. The Parallel Computing Toolbox (optional) speeds up the clustering.
 
 ---
 
@@ -46,12 +46,12 @@ A typical sequence:
 - ***Data_directory***: folder with the input data. Files are searched in this folder and in all its subfolders (e.g. *sub-XXX/ses-YYY/*);
 - ***Results_directory***: folder where the results are saved, in a subfolder *LEiDA_Results_<run_name>*;
 - ***run_name***: name of the run;
-- ***Data_space***: `'parcellated'` if each file contains the time series of each brain area, or `'MNI'` if the files are 4D NIfTI images in MNI 2mm space, which are first parcellated with the atlas in *Parcellation* (*Parcellate.m*);
+- ***Data_space***: `'parcellated'` if each file contains the time series of each brain area, or `'MNI'` if the files are 4D NIfTI images in MNI space (any resolution, field of view or orientation), which are first parcellated with the atlas in *Parcellation* (*Parcellate.m*): the atlas is resampled to the voxel grid of each scan with the affine transformations of the NIfTI headers (nearest neighbour), and the time series of each area is the mean of its voxels with signal;
 - ***File_pattern***: pattern of the file names to use (`*` is a wildcard), e.g. `'*BOLDpreprocessed_rp_mo_csf_wm_nui-parcellatedAAL90.mat'` or `'*.nii.gz'`;
 - ***Data_orientation***: `'AreasxTime'`, `'TimexAreas'` or `'auto'`;
 - ***Data_variable***: name of the variable (or struct field) with the time series in .mat files; `''` to detect it automatically;
 - ***Subject_list***: optional text file with the IDs of the subjects to include (one per line, e.g. `sub-control019`); `''` to use all files;
-- ***Parcellation***: atlas of the data. To parcellate data in MNI space and to render the FC states in the brain it must be one of the atlases in *ParcelsMNI2mm.mat*: `'AAL116'`, `'AAL120'`, `'dbs80'`, `'Desikan'`, `'Schaefer100'`, `'glasser360'`; `''` for other atlases (the brain figures are then skipped);
+- ***Parcellation***: atlas of the data, needed to parcellate data in MNI space and to render the FC states in the brain. Either the full path of the atlas as a NIfTI file with integer labels in MNI space, at its own resolution (as delivered, e.g. the same file used to parcellate the data), or one of the atlases included in *ParcelsMNI2mm.mat* (FSL MNI152 2mm grid): `'AAL116'`, `'AAL120'`, `'dbs80'`, `'Desikan'`, `'Schaefer100'`, `'glasser360'`. The names of the areas of a NIfTI atlas can be given in a text file with the same name and extension .txt, .tsv or .csv (one area per line, in the order of the labels, optionally preceded by the label number). `''` if no atlas is available (the brain figures are then skipped);
 - ***N_areas***: number of areas to consider (the first *N_areas* of the data, e.g. 90 for the cerebrum areas of AAL116); `[]` for all;
 - ***TR***, ***apply_filter***, ***flp***, ***fhi***: repetition time (s) and optional band-pass filter (0/1, lowpass and highpass frequencies);
 - ***rangeK***: numbers of FC states K to compute (default `2:20`);
@@ -79,6 +79,7 @@ Each design is defined as *Designs.<name>* with:
 ### 3. Steps to run
 
 - ***Run_eigenvectors***, ***Run_clustering***: 1 to compute the eigenvectors / clusters again; 0 to reuse those of a previous run (computed anyway if not found);
+- ***Save_centroids_nifti***: 1 to save the centroids of all K as NIfTI files (one 4D file per K, one volume per FC state), e.g. to view them in FSLeyes or MRIcroGL;
 - ***Run_design***: 1 to compute the statistics and figures of the design for all K; 0 to reuse them;
 - ***Analyse_K***: values of K whose FC states are analysed (e.g. `[6 9]`; `[]` for none);
 - ***Analyse_states***: FC states analysed individually, one row `[K c]` per state (e.g. `[6 4; 9 2]`; `[]` for none).
@@ -93,6 +94,7 @@ Results_directory/LEiDA_Results_<run_name>/
     LEiDA_EigenVectors.mat      leading eigenvectors (V1_all), scan of each (Time_sessions), Scan_info (file, subject, session of each scan)
     LEiDA_Clusters.mat          k-means results for each K (Kmeans_results, rangeK)
     Parcellated_<atlas>/        parcellated data (only if Data_space = 'MNI')
+    Centroids_NIfTI/            K<K>_centroids.nii.gz: centroids of each K in MNI space (if Save_centroids_nifti = 1)
     Design_<design name>/
         LEiDA_Parameters.mat        parameters of the run and the design
         LEiDA_Conditions.mat        condition of each scan, Scan_info with the metadata
@@ -147,7 +149,9 @@ Analysis:
 
 | Function | Description |
 |---|---|
-| *Parcellate* | Mean time series of each parcel of an atlas from 4D NIfTI data in MNI 2mm space |
+| *Parcellate* | Mean time series of each area of an atlas from 4D NIfTI data in MNI space (atlas resampled to the grid of the data) |
+| *Load_atlas* | Loads an atlas (NIfTI file or ParcelsMNI2mm.mat), its labels in the MNI 2mm grid of the figures and in its own grid, and the names of its areas |
+| *Export_centroids_nifti* | Saves the centroids of each K as 4D NIfTI files in MNI space |
 | *LEiDA_data* | Reads the scans (any orientation and file format), repairs missing or flat areas, and computes the leading eigenvector of the phase coherence at each TR |
 | *TemporalFiltering* | Band-pass Butterworth filter of the time series |
 | *LEiDA_cluster* | k-means clustering (cosine distance) of all eigenvectors for each K; states ordered by occupancy |
@@ -167,7 +171,7 @@ Figures:
 | *Plot_FO_boxplot* | Fractional occupancy of one FC state per subject in each condition, with the significant pairs |
 | *Plot_K_links_in_cortex*, *Plot_K_nodes_in_cortex*, *Plot_K_3Dbrain*, *Plot_K_matrix*, *Plot_K_vector_numbered*, *Plot_K_boxplot_FO*, *Plot_K_repertoire*, *Plot_K_overlap_yeo_nets* | Figures of the FC states of one K (see LEiDA_AnalysisK) |
 
-Helpers: *Atlas_Nparcels* (parcels of an atlas), *Parcellation_labels* (area names), *Parcel_centers* (area centers), *Areas_order* (left/right order of AAL areas), *Yeo_colors* (colors and names of the Yeo networks), *Significance_color* (colors of the significance levels), *FracOccup_mean_sem* and *FracOccup_values* (fractional occupancy per subject or scan), *Draw_links_in_cortex*, *Plot_Yeo_reference*, *Pyramid_layout*, *Pyramid_axes*, *Pyramid_labels*, *Pyramid_legend* (layout of the pyramid figures), *Save_png* (600 dpi), *subplot_tight*.
+Helpers: *Atlas_Nparcels* (parcels of an atlas), *Nifti_affine* (voxel to mm transformation of a NIfTI image), *Resample_labels* (labels to another voxel grid, nearest neighbour), *Parcellation_labels* (area names), *Parcel_centers* (area centers), *Areas_order* (left/right order of AAL areas), *Yeo_colors* (colors and names of the Yeo networks), *Significance_color* (colors of the significance levels), *FracOccup_mean_sem* and *FracOccup_values* (fractional occupancy per subject or scan), *Draw_links_in_cortex*, *Plot_Yeo_reference*, *Pyramid_layout*, *Pyramid_axes*, *Pyramid_labels*, *Pyramid_legend* (layout of the pyramid figures), *Save_png* (600 dpi), *subplot_tight*.
 
 ---
 

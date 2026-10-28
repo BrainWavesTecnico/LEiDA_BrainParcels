@@ -41,7 +41,8 @@ n_areas = size(V,1);
 clear Kmeans_results
 
 % LEiDA networks colored according to closest RSN
-Volume = struct2array(load('ParcelsMNI2mm',['V_' parcellation]));
+Atlas = Load_atlas(parcellation);
+Volume = Atlas.V;
 % Only the areas considered
 Volume(Volume > n_areas) = 0;
 Brain_Mask = niftiread('MNI152_T1_2mm_brain_mask.nii');

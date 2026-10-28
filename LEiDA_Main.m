@@ -66,11 +66,17 @@ P.Data_variable = '';
 P.Subject_list = '';
 
 % ----------------------------- PARCELLATION ------------------------------
-% Atlas used to parcellate the data. Must be one of the atlases available
-% in ParcelsMNI2mm.mat to parcellate data in MNI space and to render the FC
-% states in the brain: 'AAL116', 'AAL120', 'dbs80', 'Desikan',
-% 'Schaefer100', 'glasser360'. Set to '' if the data were parcellated with
-% another atlas (the brain renderings are then skipped).
+% Atlas used to parcellate the data, needed to parcellate data in MNI
+% space and to render the FC states in the brain. Either:
+%   - the full path of the atlas as a NIfTI file with integer labels in MNI
+%     space, at its own resolution (e.g. the same file used to parcellate
+%     the data). Names of the areas can be given in a text file with the
+%     same name and extension .txt/.tsv/.csv (one area per line, see
+%     Load_atlas). E.g. '/Users/user/Atlases/HarvardOxford-cort-maxprob-thr25-2mm.nii.gz'
+%   - one of the atlases included in ParcelsMNI2mm.mat (FSL MNI152 2mm
+%     grid): 'AAL116', 'AAL120', 'dbs80', 'Desikan', 'Schaefer100',
+%     'glasser360'
+% Set to '' if no atlas is available (the brain figures are then skipped).
 P.Parcellation = 'AAL116';
 % Number of areas to consider (the first N_areas areas of the data). Leave
 % empty [] to use all areas in the data (or all parcels of the atlas for
@@ -182,6 +188,9 @@ Design_name = 'Migraine_cycle';
 % computed in a previous run (0; they are computed if not found):
 Run_eigenvectors = 0;
 Run_clustering = 0;
+% Save the centroids of all K as NIfTI files (1) in Centroids_NIfTI/ (one
+% 4D file per K, one volume per FC state), e.g. to view them in FSLeyes:
+Save_centroids_nifti = 1;
 % Statistics and figures of the study design for all K (1), or reuse
 % those computed in a previous run (0):
 Run_design = 1;
@@ -216,6 +225,9 @@ P.design_dir = [P.leida_results 'Design_' Design_name filesep];
 
 % 1) Eigenvectors and clustering
 P = LEiDA_Start(P);
+if Save_centroids_nifti
+    Export_centroids_nifti(P);
+end
 
 % 2) Statistics and figures of the study design for all K
 if Run_design

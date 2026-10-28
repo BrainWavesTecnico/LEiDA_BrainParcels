@@ -64,8 +64,9 @@ end
 N_Yeo = 7;
 
 % Parcels of the parcellation and Yeo networks in MNI 2mm space
-S = load('ParcelsMNI2mm.mat',['V_' parcellation],'V_Yeo7');
-V_Parcels = S.(['V_' parcellation]);
+Atlas = Load_atlas(parcellation);
+V_Parcels = Atlas.V;
+S = load('ParcelsMNI2mm.mat','V_Yeo7');
 V_Yeo = S.V_Yeo7;
 
 % Cortical voxels of the Yeo networks

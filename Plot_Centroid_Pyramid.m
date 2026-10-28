@@ -122,7 +122,8 @@ disp('Computing overlap of centroids (PL states) with Yeo resting state networks
 YeoColor = Yeo_colors;
 
 % LEiDA networks colored according to closest RSN
-Volume = struct2array(load('ParcelsMNI2mm',['V_' parcellation])); 
+Atlas = Load_atlas(parcellation);
+Volume = Atlas.V; 
 
 Brain_Mask = niftiread('MNI152_T1_2mm_brain_mask.nii');
 scortex = smooth3(Brain_Mask > 0);

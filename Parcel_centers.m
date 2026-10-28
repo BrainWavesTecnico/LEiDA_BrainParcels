@@ -4,7 +4,7 @@ function MNI_coord = Parcel_centers(parcellation,n_areas)
 % as [y x z] voxel coordinates (the axes used in the brain renderings).
 %
 % INPUT:
-% parcellation  name of the parcellation (atlas in ParcelsMNI2mm.mat)
+% parcellation  name of the parcellation (see Load_atlas)
 % n_areas       number of areas considered (the first n_areas)
 %
 % OUTPUT:
@@ -12,8 +12,8 @@ function MNI_coord = Parcel_centers(parcellation,n_areas)
 %
 % Author: Joana Cabral, University of Minho, joanacabral@med.uminho.pt
 
-S = load('ParcelsMNI2mm.mat',['V_' parcellation]);
-Volume = S.(['V_' parcellation]);
+Atlas = Load_atlas(parcellation);
+Volume = Atlas.V;
 MNI_coord = zeros(n_areas,3);
 for n = 1:n_areas
     [X,Y,Z] = ind2sub(size(Volume),find(Volume == n));

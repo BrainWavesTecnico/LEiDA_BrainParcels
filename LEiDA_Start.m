@@ -48,10 +48,11 @@ if P.Run_eigenvectors || ~isfile(file_V1)
 
     % Parcellate the data in MNI space with the selected atlas
     if strcmpi(P.Data_space,'MNI')
-        parcellated_dir = [P.leida_results 'Parcellated_' P.Parcellation filesep];
+        [~,atlas_name] = fileparts(regexprep(P.Parcellation,'\.nii(\.gz)?$',''));
+        parcellated_dir = [P.leida_results 'Parcellated_' atlas_name filesep];
         Parcellate(Data_directory,File_pattern,parcellated_dir,P.Parcellation,P.N_areas);
         Data_directory = parcellated_dir;
-        File_pattern = ['*_' P.Parcellation '.mat'];
+        File_pattern = ['*_' atlas_name '.mat'];
         Data_orientation = 'AreasxTime';
         Data_variable = 'data';
     end

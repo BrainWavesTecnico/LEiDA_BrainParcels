@@ -41,7 +41,7 @@ if isempty(n_areas)
     n_areas = size(Kmeans_results{k}.C,2);
 end
 if isempty(Atlas_Nparcels(parcellation))
-    error('LEiDA:centroid','Parcellation ''%s'' is not available in ParcelsMNI2mm.mat',parcellation);
+    error('LEiDA:centroid','Parcellation ''%s'' not found (see Load_atlas)',parcellation);
 end
 
 % Centroid vector (sum of entries < 0, as in the clustering), scaled by
@@ -68,8 +68,8 @@ else
 end
 
 % Parcels, their centers and names, and brain mask
-S = load('ParcelsMNI2mm.mat',['V_' parcellation]);
-Volume = S.(['V_' parcellation]);
+Atlas = Load_atlas(parcellation);
+Volume = Atlas.V;
 Volume(Volume > n_areas) = 0;
 MNI_coord = zeros(n_areas,3);
 for n = 1:n_areas
