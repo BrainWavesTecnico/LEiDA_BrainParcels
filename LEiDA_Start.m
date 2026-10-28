@@ -102,6 +102,8 @@ rangeK = 2:20;
 %                Data_directory, e.g. sub-patient001/ses-ictal/...), e.g.
 %                Condition_tags = {'sub-control','sub-patient'} or
 %                Condition_tags = {'sub-control','ses-interictal','ses-ictal'}
+%                A condition can group several tags, given as a cell, e.g.
+%                {{'ses-interictal','ses-preictal','ses-postictal'},'ses-ictal'}
 %   'metadata' : the condition is read from a table (.csv or .xlsx) with
 %                one row per subject (or per subject and session)
 %   'none'     : no conditions (only eigenvectors, clustering and centroids)
@@ -127,10 +129,18 @@ Condition_column = 'sheet';
 %       Condition_tags = {'controls','patients'};
 %   controls vs patients interictal vs patients ictal ('filename'):
 %       Condition_tags = {'sub-control','ses-interictal','ses-ictal'};
-Condition_tags = {'sub-control','ses-interictal','ses-ictal'};
+%       Condition_names = {'Controls','Interictal','Ictal'};
+%   patients without vs with migraine attack ('filename'):
+%       Condition_tags = {{'ses-interictal','ses-preictal','ses-postictal'},'ses-ictal'};
+%       Condition_names = {'Non-ictal','Ictal'};
+Condition_tags = {{'ses-interictal','ses-preictal','ses-postictal'},'ses-ictal'};
 % Names of the conditions in the figures (same order as Condition_tags).
 % Leave {} to use Condition_tags.
-Condition_names = {'Controls','Interictal','Ictal'};
+Condition_names = {'Non-ictal','Ictal'};
+% Name of this study design. The statistics, conditions and figures of the
+% design are also copied to a subfolder Design_<Design_name> of the results
+% folder, so that they are kept when another design is run ('' to skip).
+Design_name = 'NonIctal_vs_Ictal';
 
 % ------------------------------ STATISTICS -------------------------------
 % Differences between conditions are tested with permutation tests:
@@ -155,10 +165,10 @@ Stats_level = 'subject';
 % (= 2.4e-4 for K = 2:20), more than 4200 permutations are
 % needed. For a first quick analysis choose like 1000, and 10000 or more
 % for the final results.
-n_permutations = 1000;
+n_permutations = 20000;
 % Number of bootstrap samples for the 95% confidence interval of the effect
 % sizes (0 to skip; e.g. 1000 for the final results).
-n_bootstraps = 0;
+n_bootstraps = 1000;
 
 % -------------------------------- FIGURES --------------------------------
 % Direction to plot the FC states/brain ('SideView' or 'TopView'):
@@ -167,8 +177,8 @@ CortexDirection = 'TopView';
 % ------------------------------ STEPS TO RUN -----------------------------
 % Set to 0 to skip steps already computed in a previous run (e.g. to test
 % a new study design without recomputing the eigenvectors and clusters):
-Run_eigenvectors = 1;
-Run_clustering = 1;
+Run_eigenvectors = 0;
+Run_clustering = 0;
 
 % AFTER FILLING IN THE INPUT PARAMETERS:
 % ||||||||||||||||||||||||||||||| CLICK RUN |||||||||||||||||||||||||||||||
@@ -194,7 +204,7 @@ save([leida_results 'LEiDA_Parameters.mat'], 'Data_directory', 'Data_space', ...
      'File_pattern', 'Data_orientation', 'Data_variable', 'Subject_list', ...
      'Parcellation', 'N_areas', 'TR', 'apply_filter', 'flp', 'fhi', 'rangeK', ...
      'Condition_source', 'Metadata_file', 'Metadata_subject_column', ...
-     'Metadata_session_column', 'Condition_column', 'Condition_tags', 'Condition_names', ...
+     'Metadata_session_column', 'Condition_column', 'Condition_tags', 'Condition_names', 'Design_name', ...
      'Paired_tests', 'Stats_level', 'n_permutations', 'n_bootstraps', 'CortexDirection');
 
 %% B: RUN LEADING EIGENVECTOR DYNAMICS ANALYSIS
@@ -222,6 +232,9 @@ end
 
 %% C: STUDY DESIGN, STATISTICS AND FIGURES
 
+% Start time of this step (to keep a copy of the files of this design)
+t_design = now;
+
 % Assign each scan to a condition
 if strcmpi(Condition_source,'none')
     Condition_tags = {};
@@ -238,9 +251,43 @@ else
     % Compute the fractional occupancy and perform hypothesis tests
     LEiDA_stats_FracOccup(leida_results,Index_Conditions,Condition_tags,Paired_tests,n_permutations,n_bootstraps,Stats_level);
 
+    % Print the 10 largest effect sizes of each pair of conditions, with
+    % their 95% bootstrap confidence intervals and p-values
+    S = load([leida_results 'LEiDA_Stats_FracOccup.mat'],'effectsize_signed','effectsize_ci','P_pval2sided','rangeK');
+    [cond2,cond1] = find(triu(ones(numel(Condition_tags)),1)');
+    for pair = 1:numel(cond1)
+        g_pair = reshape(S.effectsize_signed(pair,:,:),[],1);
+        [~,idx] = sort(abs(g_pair),'descend');
+        idx = idx(1:min(10,numel(idx)));
+        [k,c] = ind2sub([numel(S.rangeK) S.rangeK(end)],idx);
+        ci = reshape(S.effectsize_ci(pair,:,:,:),[],2);
+        p = reshape(S.P_pval2sided(pair,:,:),[],1);
+        disp(['Largest effect sizes, ' Condition_tags{cond1(pair)} ' vs ' Condition_tags{cond2(pair)} ...
+              ' (g > 0: ' Condition_tags{cond1(pair)} ' higher):'])
+        disp(table(S.rangeK(k)',c,g_pair(idx),ci(idx,1),ci(idx,2),p(idx),...
+                   'VariableNames',{'K','c','g','CI_low','CI_high','p'}))
+    end
+
     % Generate and save the p-value and barplot plots for fractional occupancy
     Plot_FracOccup(leida_results)
 end
 
 % Plot the centroids obtained using LEiDA and their overlap with Yeo nets
 Plot_Centroid_Pyramid(leida_results,Condition_tags,Parcellation,N_areas,CortexDirection)
+
+% Keep a copy of the results of this design in its own subfolder
+if ~strcmpi(Condition_source,'none') && ~isempty(Design_name)
+    design_dir = [leida_results 'Design_' Design_name filesep];
+    if ~exist(design_dir,'dir')
+        mkdir(design_dir);
+    end
+    design_files = [dir([leida_results 'LEiDA_Stats_FracOccup.mat']); dir([leida_results 'LEiDA_Conditions.mat']);
+                    dir([leida_results 'FracOccup_*']); dir([leida_results 'Centroid_Pyramid_*'])];
+    % Only the files written by this design (not those of previous designs)
+    design_files = design_files([design_files.datenum] >= t_design - 1/86400);
+    for f = 1:numel(design_files)
+        copyfile(fullfile(design_files(f).folder,design_files(f).name),design_dir);
+    end
+    copyfile([leida_results 'LEiDA_Parameters.mat'],design_dir);
+    disp(['Results of this design copied to ' design_dir])
+end

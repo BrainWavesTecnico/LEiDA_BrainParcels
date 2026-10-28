@@ -7,7 +7,9 @@ function [Index_Conditions,Condition_tags,Scan_info] = LEiDA_conditions(data_dir
 % data_dir          directory where the LEiDA results are saved
 % source            'filename' or 'metadata'
 % Condition_tags    'filename': tags to search in the file path of each
-%                   scan, e.g. {'sub-control','sub-patient'}
+%                   scan, e.g. {'sub-control','sub-patient'}; a condition
+%                   can group several tags, e.g.
+%                   {{'ses-interictal','ses-preictal','ses-postictal'},'ses-ictal'}
 %                   'metadata': values of condition_column to compare;
 %                   {} to use all values found
 % metadata_file     table with one row per subject (or subject and session)
@@ -23,7 +25,8 @@ function [Index_Conditions,Condition_tags,Scan_info] = LEiDA_conditions(data_dir
 % OUTPUT:
 % Index_Conditions  (1 x n_scans) condition of each scan (index in
 %                   Condition_tags); 0 for scans not in any condition
-% Condition_tags    (1 x n_conditions) name of each condition
+% Condition_tags    (1 x n_conditions) name of each condition (tags of a
+%                   condition with several tags joined by '+')
 % Scan_info         table with the information of each scan, including
 %                   all the columns of the metadata table
 %
@@ -37,20 +40,26 @@ disp(' ')
 load(fullfile(data_dir,'LEiDA_EigenVectors.mat'),'Scan_info','idx_data');
 n_scans = height(Scan_info);
 Index_Conditions = zeros(1,n_scans);
-Condition_tags = cellstr(Condition_tags);
-Condition_tags = Condition_tags(:)';
+if iscell(Condition_tags)
+    Condition_tags = Condition_tags(:)';
+else
+    Condition_tags = cellstr(Condition_tags);
+end
 
 switch lower(source)
 
     case 'filename'
         for c = 1:numel(Condition_tags)
-            has_tag = contains(Scan_info.file, Condition_tags{c});
+            % A scan belongs to condition c if its path contains any of its tags
+            has_tag = contains(Scan_info.file, cellstr(Condition_tags{c}));
             if any(has_tag & Index_Conditions' > 0)
                 error('LEiDA:conditions','Some files contain more than one condition tag, e.g. %s', ...
                       Scan_info.file{find(has_tag & Index_Conditions' > 0,1)});
             end
             Index_Conditions(has_tag) = c;
         end
+        % Name of each condition (tags joined by '+')
+        Condition_tags = cellfun(@(t) strjoin(cellstr(t),'+'), Condition_tags, 'UniformOutput', false);
 
     case 'metadata'
         [meta_names,meta_cells] = Read_metadata(metadata_file,subject_column);
@@ -62,6 +71,7 @@ switch lower(source)
             end
         end
         Metadata = @(col) meta_cells(:,strcmp(meta_names,col));
+        Condition_tags = cellstr(Condition_tags);
         meta_subject = Cell2string(Metadata(subject_column));
         if ~isempty(session_column)
             meta_session = Cell2string(Metadata(session_column));
