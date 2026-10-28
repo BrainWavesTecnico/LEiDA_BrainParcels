@@ -36,7 +36,7 @@ run_name = 'MIGRAINE_AAL90';
 % Study design whose statistics are shown (Design_name in LEiDA_Start).
 % Leave '' to use the statistics of the last design run (in the results
 % folder of the run):
-Design_name = 'NonIctal_vs_Ictal';
+Design_name = 'Migraine_cycle';
 % Number of FC states K and FC state to analyse (1 <= Centroid <= SelectK):
 SelectK = 6;
 Centroid = 4;
