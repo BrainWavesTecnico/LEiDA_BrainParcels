@@ -45,7 +45,7 @@ n_areas = size(V,1);
 
 % Compute the overlap between cluster centroids obtained for each value of
 % K and the resting-state networks defined by Yeo et al. 2011
-[cc_V_yeo7, p_V_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
+[dice_V_yeo7, overlap_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
 clear Kmeans_results
 
 % LEiDA networks colored according to closest RSN
@@ -62,7 +62,7 @@ Fig = figure('Position', get(0, 'Screensize'));
 colormap(jet)
 for c = 1:selectedK
     
-    [~, net] = max(cc_V_yeo7(rangeK == selectedK,c,:));
+    [~, net] = max(dice_V_yeo7(rangeK == selectedK,c,:));
     
     % First Plot view from top
     subplot_tight(8,selectedK,c+selectedK,0.02)
@@ -78,7 +78,7 @@ for c = 1:selectedK
             region_Vol = Volume == n_pos(region); % 3D volume with 1 only in the voxels of that area
             sregion = smooth3(region_Vol > 0);
             
-            if p_V_yeo7(rangeK == selectedK,c,net) < 0.05/selectedK
+            if overlap_yeo7(rangeK == selectedK,c,net)
                 patch(isosurface(sregion,0.3), 'FaceColor', YeoColor(net,:), 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
             else
                 patch(isosurface(sregion,0.3), 'FaceColor', 'k', 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
@@ -90,7 +90,7 @@ for c = 1:selectedK
         patch(isosurface(sregion,0.3), 'FaceColor', [.6 .6 .6], 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
     end
     
-    if p_V_yeo7(rangeK == selectedK,c,net) < 0.05/selectedK
+    if overlap_yeo7(rangeK == selectedK,c,net)
         title({['FC state ' num2str(c), newline, Yeo_names{net}]} ) %,Yeo_names{c}})
     elseif numel(n_pos) == 0
         title({['FC state ' num2str(c), newline, 'Global Mode']} ) %,Yeo_names{c}})
@@ -118,7 +118,7 @@ for c = 1:selectedK
             region_Vol = Volume == n_pos(region); % 3D volume with 1 only in the voxels of that area
             sregion = smooth3(region_Vol > 0);
             
-            if p_V_yeo7(rangeK == selectedK,c,net) < 0.05/selectedK
+            if overlap_yeo7(rangeK == selectedK,c,net)
                 patch(isosurface(sregion,0.3), 'FaceColor', YeoColor(net,:), 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
             else
                 patch(isosurface(sregion,0.3), 'FaceColor', 'k', 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
@@ -170,7 +170,7 @@ for c = 1:selectedK
     med_col = b(n_Cond+1:n_Cond*2);
     set(med_col, 'Color', 'k');
     box_col = b(n_Cond*2+1:n_Cond*3);
-    if p_V_yeo7(rangeK == selectedK,c,net) < 0.05/selectedK
+    if overlap_yeo7(rangeK == selectedK,c,net)
         set(box_col, 'Color', YeoColor(net,:));
     else
         set(box_col, 'Color', 'k');

@@ -40,7 +40,7 @@ V = V'./max(abs(V'));
 
 % Compute the overlap between cluster centroids obtained for each value of
 % K and the resting-state networks defined by Yeo et al. 2011
-[cc_V_yeo7, p_V_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
+[dice_V_yeo7, overlap_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
 clear Kmeans_results
 
 % LEiDA networks colored according to closest RSN
@@ -109,7 +109,7 @@ for k = 1:length(Vo)
 end
     
 % Plot of centroid in 3D glass brain
-[~, net] = max(cc_V_yeo7(rangeK == selectedK,centroid,:));
+[~, net] = max(dice_V_yeo7(rangeK == selectedK,centroid,:));
 subplot(2,4,2)
 hold on
 cortexpatch = patch(isosurface(scortex,0.1), 'FaceColor', [0.9 0.9 0.9], 'EdgeColor', 'none','FaceAlpha', 0.2);
@@ -124,7 +124,7 @@ if numel(n_pos) > 0
         region_Vol = Volume == n_pos(region); % 3D volume with 1 only in the voxels of that area
         sregion = smooth3(region_Vol > 0);
 
-        if p_V_yeo7(rangeK == selectedK,centroid,net) < 0.05/selectedK
+        if overlap_yeo7(rangeK == selectedK,centroid,net)
             patch(isosurface(sregion,0.3), 'FaceColor', YeoColor(net,:), 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
         else
             patch(isosurface(sregion,0.3), 'FaceColor', 'k', 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
@@ -158,7 +158,7 @@ if numel(n_pos) > 0
         region_Vol = Volume == n_pos(region); % 3D volume with 1 only in the voxels of that area
         sregion = smooth3(region_Vol > 0);
 
-        if p_V_yeo7(rangeK == selectedK,centroid,net) < 0.05/selectedK
+        if overlap_yeo7(rangeK == selectedK,centroid,net)
             patch(isosurface(sregion,0.3), 'FaceColor', YeoColor(net,:), 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
         else
             patch(isosurface(sregion,0.3), 'FaceColor', 'k', 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
@@ -206,7 +206,7 @@ f = get(b,'tag');   % List the names of all the objects
 med_col = b(n_Cond+1:n_Cond*2);
 set(med_col, 'Color', 'k');
 box_col = b(n_Cond*2+1:n_Cond*3);
-if p_V_yeo7(rangeK == selectedK,centroid,net) < 0.05/selectedK
+if overlap_yeo7(rangeK == selectedK,centroid,net)
     set(box_col, 'Color', YeoColor(net,:));
 else
     set(box_col, 'Color', 'k');

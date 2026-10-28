@@ -43,7 +43,7 @@ YeoColor = Yeo_colors;
 
 % Compute the overlap between cluster centroids obtained for each value of
 % K and the resting-state networks defined by Yeo et al. 2011
-[cc_V_yeo7, p_V_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
+[dice_V_yeo7, overlap_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
 
 disp(' ');
 disp(['Plotting the boxplot of fractional occupancy values for each of the ' num2str(selectedK) ' PL states by condition:'])
@@ -56,7 +56,7 @@ for c = 1:selectedK
         subplot(2,10,c)
     end
     
-    [~, net] = max(cc_V_yeo7(rangeK == selectedK,c,:));
+    [~, net] = max(dice_V_yeo7(rangeK == selectedK,c,:));
     P_cond = cell(1,n_Cond);
     g = cell(1,n_Cond);
     for j = 1:n_Cond
@@ -73,7 +73,7 @@ for c = 1:selectedK
     med_col = b(n_Cond+1:n_Cond*2);
     set(med_col, 'Color', 'k');
     box_col = b(n_Cond*2+1:n_Cond*3);
-    if p_V_yeo7(rangeK == selectedK,c,net) < 0.05/selectedK
+    if overlap_yeo7(rangeK == selectedK,c,net)
         set(box_col, 'Color', YeoColor(net,:));
     else
         set(box_col, 'Color', 'k');

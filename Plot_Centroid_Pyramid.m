@@ -110,7 +110,7 @@ disp(' ')
 % Compute the overlap between cluster centroids obtained for each value of
 % K and the resting-state networks defined by Yeo et al. 2011
 disp('Computing overlap of centroids (PL states) with Yeo resting state networks')
-[cc_V_yeo7, p_V_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
+[dice_V_yeo7, overlap_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
 
 % Colors of the 7 Yeo et al. (2011) networks (defined in Yeo_colors.m)
 YeoColor = Yeo_colors;
@@ -142,7 +142,7 @@ for k = 1:length(rangeK)
         end
         %V = round(V*1e2)/1e2;
         
-        [~,net] = max(cc_V_yeo7(k,Centroid,:));
+        [~,net] = max(dice_V_yeo7(k,Centroid,:));
         
         Centroid_Vol = zeros(size(Volume));
         
@@ -164,7 +164,7 @@ for k = 1:length(rangeK)
         reducepatch(cortexpatch,0.01);
         isonormals(scortex,cortexpatch);
         
-        if p_V_yeo7(k,Centroid,net) < 0.05/rangeK(k) 
+        if overlap_yeo7(k,Centroid,net) 
             patch(isosurface(sregion,0.3), 'FaceColor', YeoColor(net,:), 'EdgeColor', 'none') %'FaceAlpha', V(n))
         else
             % Color in Black if no significant overlap with any of the Yeo resting-state networks

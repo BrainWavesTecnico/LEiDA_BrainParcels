@@ -34,9 +34,9 @@ n_areas = size(V,2);
 % Colors of the 7 Yeo et al. (2011) networks (defined in Yeo_colors.m)
 YeoColor = Yeo_colors;
 
-% Compute the overlap between cluster centroids obtained for each value of
-% K and the resting-state networks defined by Yeo et al. 2011
-[cc_V_yeo7, p_V_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
+% Compute the overlap (Dice coefficient) between cluster centroids obtained
+% for each value of K and the resting-state networks defined by Yeo et al. 2011
+[dice_V_yeo7, overlap_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
 clear Kmeans_results
 
 disp(' ');
@@ -44,39 +44,26 @@ disp(['Plotting overlap with Yeo RSNs for K = ' num2str(selectedK) ' clusters.']
 disp(' ')
 Fig = figure('Position', get(0, 'Screensize'));
 
-b = bar(1:selectedK,squeeze(cc_V_yeo7(rangeK == selectedK,1:selectedK,1:7)));
+b = bar(1:selectedK,squeeze(dice_V_yeo7(rangeK == selectedK,1:selectedK,1:7)));
 for i = 1:7
     set(b(i),'FaceColor',YeoColor(i,:));
 end
 xlabel(['K = ' num2str(selectedK) ' clusters'], 'FontSize',14);
-ylabel({'Pearson''s correlation with 7 RSNs';'(Yeo et al. 2011)'}, 'FontSize', 14);
+ylabel({'Dice coefficient with 7 RSNs';'(Yeo et al. 2011)'}, 'FontSize', 14);
 legend({'Visual','Somatomotor','Dorsal Att.','Ventral Att.','Limbic','Frontoparietal','Default Mode'}, ...
        'Location','northwest','FontSize',14);
 legend boxoff;
 box off;
+% Mark with * the network assigned to each FC state (largest Dice
+% coefficient, above the threshold in Overlap_LEiDA_Yeo)
 for centroidK = 1:selectedK
-    for NetYeo = 1:7
-        if p_V_yeo7(rangeK == selectedK,centroidK,NetYeo) < 0.05/selectedK && ~isnan(p_V_yeo7(rangeK == selectedK,centroidK,NetYeo))
-            if isprop(b(1),'XEndpoints')
-                x_K = b(NetYeo).XEndPoints;
-                x_in_group = x_K(centroidK);
-                y_K = b(NetYeo).YEndPoints;
-                y_in_group = y_K(centroidK);
-                if cc_V_yeo7(rangeK == selectedK,centroidK,NetYeo) > 0
-                    text(x_in_group,y_in_group*1.01,'*','fontsize',25,'Color',[0 0 0],'HorizontalAlignment','center');
-                else
-                    text(x_in_group,0.01,'*','fontsize',25,'Color',[0 0 0],'HorizontalAlignment','center');
-                end   
-            else
-                % If in n this Matlab version it was not possible to add asterisks on the bars 
-                % These can be added manually at the following locations:')
-                disp(['- Centroid ' num2str(centroidK) ' significantly overlaps with Yeo Network ' num2str(NetYeo)])
-                disp(['     cc= ' num2str(cc_V_yeo7(rangeK == selectedK,centroidK,NetYeo)) ' p=' num2str(p_V_yeo7(rangeK == selectedK,centroidK,NetYeo))])
-            end 
-        end
+    NetYeo = find(overlap_yeo7(rangeK == selectedK,centroidK,:));
+    if ~isempty(NetYeo)
+        text(b(NetYeo).XEndPoints(centroidK),b(NetYeo).YEndPoints(centroidK),'*','fontsize',25,...
+             'Color',[0 0 0],'HorizontalAlignment','center','VerticalAlignment','bottom');
     end
-end           
-     
+end
+
 Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_OverlapYeoNets.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_OverlapYeoNets.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_OverlapYeoNets']);

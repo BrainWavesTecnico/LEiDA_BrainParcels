@@ -103,6 +103,7 @@ Differences between each pair of conditions are tested for each FC state and eac
 - The p-values are counted directly from the permutation distribution, p = (1 + number of permuted statistics at least as extreme as the observed one) / (1 + n_permutations), without fitting the null distribution;
 - Effect size: Hedges' g (unpaired) or g_z (paired), with a 95% bootstrap (percentile) confidence interval if *n_bootstraps* > 0;
 - Significance levels shown in the figures (colors): p < 0.05 (dark red), p < 0.05/K (dark green), p < 0.05/sum(rangeK) (dark blue).
+- Overlap with the Yeo et al. (2011) networks (*Overlap_LEiDA_Yeo.m*): each FC state is mapped to MNI space (voxels of the parcels with positive values in the centroid) and compared with each of the 7 cortical networks with the Dice coefficient, as in LEiDA_Voxel. A state is colored with the network of largest Dice if it is at least 0.3, otherwise in black.
 
 ---
 
