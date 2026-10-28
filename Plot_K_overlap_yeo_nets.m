@@ -34,9 +34,10 @@ n_areas = size(V,2);
 % Colors of the 7 Yeo et al. (2011) networks (defined in Yeo_colors.m)
 YeoColor = Yeo_colors;
 
-% Compute the overlap (Dice coefficient) between cluster centroids obtained
-% for each value of K and the resting-state networks defined by Yeo et al. 2011
-[dice_V_yeo7, overlap_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
+% Compute the overlap (weighted Dice coefficient) between cluster centroids
+% obtained for each value of K and the resting-state networks defined by
+% Yeo et al. 2011, and the largest Dice reachable with this parcellation
+[dice_V_yeo7, overlap_yeo7, dice_max] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
 clear Kmeans_results
 
 disp(' ');
@@ -49,13 +50,15 @@ for i = 1:7
     set(b(i),'FaceColor',YeoColor(i,:));
 end
 xlabel(['K = ' num2str(selectedK) ' clusters'], 'FontSize',14);
-ylabel({'Dice coefficient with 7 RSNs';'(Yeo et al. 2011)'}, 'FontSize', 14);
-legend({'Visual','Somatomotor','Dorsal Att.','Ventral Att.','Limbic','Frontoparietal','Default Mode'}, ...
+ylabel({'Weighted Dice coefficient with 7 RSNs';'(Yeo et al. 2011)'}, 'FontSize', 14);
+% Legend with the largest Dice reachable for each network with this parcellation
+[~,Yeo_names] = Yeo_colors;
+legend(strcat(Yeo_names,arrayfun(@(d) sprintf(' (max %.2f)',d),dice_max,'UniformOutput',false)), ...
        'Location','northwest','FontSize',14);
 legend boxoff;
 box off;
 % Mark with * the network assigned to each FC state (largest Dice
-% coefficient, above the threshold in Overlap_LEiDA_Yeo)
+% coefficient, large enough relative to the max, see Overlap_LEiDA_Yeo)
 for centroidK = 1:selectedK
     NetYeo = find(overlap_yeo7(rangeK == selectedK,centroidK,:));
     if ~isempty(NetYeo)
