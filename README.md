@@ -1,96 +1,111 @@
 # Leading Eigenvector Dynamics Analysis Toolbox - Matlab
 
-1. [Installation](#installation-of-leida-toolbox)
-2. [LEiDA Start](#leida-start)
-3. [LEiDA Analysis K](#leida-analysis-k)
-4. [LEiDA Analysis Centroid](#leida-analysis-centroid)
-5. [LEiDA Transitions K](#leida-transitions-k)
-6. [LEiDA State Time Courses](#leida-state-time-courses)
+1. [Installation](#installation)
+2. [Workflow: LEiDA_Main](#workflow-leida_main)
+3. [Parameters of LEiDA_Main](#parameters-of-leida_main)
+4. [Outputs](#outputs)
+5. [Statistics](#statistics)
+6. [Format of the inputs](#format-of-the-inputs)
+7. [Functions](#functions)
+8. [Not yet integrated in LEiDA_Main](#not-yet-integrated-in-leida_main)
 
 ---
 
-## Installation of LEiDA Toolbox
+## Installation
 
-Start by creating a new folder where all the LEiDA code and analyses will be saved. 
-Then clone or download this repository into that folder. LEiDA_Start adds the folder with the toolbox functions to the Matlab path automatically.
+Clone or download this repository into a folder. *LEiDA_Main* adds the folder with the toolbox functions to the Matlab path automatically.
 
-
-> Note that the LEiDA Toolbox requires the Statistics and Machine Learning Matlab Toolbox.
+> Requires MATLAB R2020b or later, with the Statistics and Machine Learning Toolbox. The Image Processing Toolbox is needed only to parcellate data in MNI space that is not in the 2mm grid of the atlases, and the Parallel Computing Toolbox (optional) speeds up the clustering.
 
 ---
 
-## LEiDA Start
+## Workflow: LEiDA_Main
 
-The function ***LEiDA_Start.m*** runs the first stage of the LEiDA analyses. The user is expected to only need to change the inputs in *Section A*. All parameters of the run are saved in *LEiDA_Parameters.mat* in the results folder.
+All the parameters of the analysis are set in ***LEiDA_Main.m***, which runs the analysis in four steps. Fill in its three parameter sections and click *Run*.
 
-> Requires MATLAB R2020b or later.
+| Step | Function | What it does | Runs when |
+|---|---|---|---|
+| 1 | *LEiDA_Start* | Leading eigenvectors of the phase coherence of every scan (*LEiDA_data*), and their clustering into K FC states for each K in *rangeK* (*LEiDA_cluster*) | Once per run: reused afterwards unless *Run_eigenvectors* / *Run_clustering* = 1 |
+| 2 | *LEiDA_Design* | For the selected study design: conditions of each scan, fractional occupancy of each FC state, permutation tests between conditions, and figures for all K (p-values, effect sizes, barplots, centroid pyramid) | *Run_design* = 1 |
+| 3 | *LEiDA_AnalysisK* | Figures of all the FC states of each K in *Analyse_K* | *Analyse_K* not empty |
+| 4 | *LEiDA_AnalysisCentroid* | Summary figure of each FC state in *Analyse_states* | *Analyse_states* not empty |
 
-Input parameters:
+A typical sequence:
 
-*Directories*
+1. Run once with the data parameters set to compute the eigenvectors and clusters (they are computed automatically the first time).
+2. Look at the centroid pyramid and the p-value plots of the design to choose values of K and FC states of interest.
+3. Set *Analyse_K* and *Analyse_states* (and *Run_design* = 0 to reuse the statistics) and run again.
+4. To test another study design, change *Design_name* and run again: the eigenvectors and clusters are reused, and each design keeps its own results folder.
+
+---
+
+## Parameters of LEiDA_Main
+
+### 1. Data and run
 
 - ***Data_directory***: folder with the input data. Files are searched in this folder and in all its subfolders (e.g. *sub-XXX/ses-YYY/*);
-- ***Results_directory***: folder where the results are saved. A subfolder *LEiDA_Results_<run_name>* is created inside it. It does not need to be inside the toolbox folder;
-- ***run_name***: name of the current run, used to name the results folder;
-
-*Input data*
-
-- ***Data_space***: `'parcellated'` if each file contains the time series of each brain area, or `'MNI'` if the files are 4D NIfTI images in MNI 2mm space, which are first parcellated with the atlas defined in *Parcellation* (see *Parcellate.m*);
-- ***File_pattern***: pattern of the file names to use (`*` is a wildcard), e.g. `'*BOLDpreprocessed_rp_mo_csf_wm_nui-parcellatedAAL90.mat'` or `'*.nii.gz'`. Only files matching this pattern are used;
-- ***Data_orientation***: `'AreasxTime'`, `'TimexAreas'` or `'auto'` (detect it from the number of areas);
+- ***Results_directory***: folder where the results are saved, in a subfolder *LEiDA_Results_<run_name>*;
+- ***run_name***: name of the run;
+- ***Data_space***: `'parcellated'` if each file contains the time series of each brain area, or `'MNI'` if the files are 4D NIfTI images in MNI 2mm space, which are first parcellated with the atlas in *Parcellation* (*Parcellate.m*);
+- ***File_pattern***: pattern of the file names to use (`*` is a wildcard), e.g. `'*BOLDpreprocessed_rp_mo_csf_wm_nui-parcellatedAAL90.mat'` or `'*.nii.gz'`;
+- ***Data_orientation***: `'AreasxTime'`, `'TimexAreas'` or `'auto'`;
 - ***Data_variable***: name of the variable (or struct field) with the time series in .mat files; `''` to detect it automatically;
-- ***Subject_list***: optional text file with the IDs of the subjects to include (one per line, e.g. `sub-control019`); `''` to use all files matching *File_pattern*;
+- ***Subject_list***: optional text file with the IDs of the subjects to include (one per line, e.g. `sub-control019`); `''` to use all files;
+- ***Parcellation***: atlas of the data. To parcellate data in MNI space and to render the FC states in the brain it must be one of the atlases in *ParcelsMNI2mm.mat*: `'AAL116'`, `'AAL120'`, `'dbs80'`, `'Desikan'`, `'Schaefer100'`, `'glasser360'`; `''` for other atlases (the brain figures are then skipped);
+- ***N_areas***: number of areas to consider (the first *N_areas* of the data, e.g. 90 for the cerebrum areas of AAL116); `[]` for all;
+- ***TR***, ***apply_filter***, ***flp***, ***fhi***: repetition time (s) and optional band-pass filter (0/1, lowpass and highpass frequencies);
+- ***rangeK***: numbers of FC states K to compute (default `2:20`);
+- ***CortexDirection***: view of the brains in the pyramid (`'TopView'` or `'SideView'`).
 
-*Parcellation*
+### 2. Study designs
 
-- ***Parcellation***: atlas used to parcellate the data. To parcellate data in MNI space and to render the FC states in the brain it must be one of the atlases in *ParcelsMNI2mm.mat*: `'AAL116'`, `'AAL120'`, `'dbs80'`, `'Desikan'`, `'Schaefer100'`, `'glasser360'`. Set to `''` for other atlases (the brain renderings are skipped);
-- ***N_areas***: number of areas to consider (the first *N_areas* areas of the data, e.g. 90 to use only the cerebrum areas of AAL116). Leave `[]` to use all the areas in the data (or all the parcels of the atlas for data in MNI space);
+Settings common to all designs (*Common.<field>*), which each design can override:
 
-*Signal processing*
-
-- ***TR***: TR of the fMRI data in seconds;
-- ***apply_filter***: apply temporal filtering to the parcellated data (0: no; 1: yes);
-- ***flp***: lowpass frequency of filter (default 0.1);
-- ***fhi***: highpass frequency of filter (default 0.01);
-
-*Clustering*
-
-- ***rangeK***: range of numbers of FC states (K) to compute (default `2:20`);
-
-*Study design*
-
-- ***Condition_source***: how to assign each scan to a condition:
-    - `'filename'`: a scan belongs to the condition whose tag in *Condition_tags* is found in its file path, e.g. `{'sub-control','sub-patient'}`;
-    - `'metadata'`: the condition is read from a table (.csv or .xlsx), see below;
-    - `'none'`: no conditions (only eigenvectors, clustering and centroids);
-- ***Metadata_file***: table (.csv or .xlsx) with one row per subject, or per subject and session. The header is the first row containing *Metadata_subject_column*, so rows above it (e.g. units) are ignored. All sheets of a spreadsheet are read, and the name of each sheet is available as a column named `sheet`;
-- ***Metadata_subject_column***: column with the subject IDs, as they appear in the folder/file names (e.g. `sub-control019`);
-- ***Metadata_session_column***: column with the session IDs (e.g. `ses-midcycle`); `''` if there is only one scan per subject;
-- ***Condition_column***: column with the condition of each scan (or `'sheet'`);
-- ***Condition_tags***: conditions to compare (tags in the file names, or values of *Condition_column*). Scans not belonging to any of these conditions are left out of the statistics. With `'metadata'`, leave `{}` to use all values found;
-- ***Condition_names***: names of the conditions shown in the figures, in the same order as *Condition_tags* (`{}` to use *Condition_tags*), e.g. `{'Controls','Interictal','Ictal'}` for `Condition_tags = {'sub-control','ses-interictal','ses-ictal'}`;
-
-*Statistics and figures*
-
-- ***Paired_tests***: experimental paradigm. 0 (unpaired): subjects in different conditions are not the same; the test statistic is Welch's t, which does not assume equal variances. 1 (paired): the same subjects are scanned in all conditions; the scans of each subject are paired by subject ID and the test statistic is the paired t. `'auto'`: for each pair of conditions, paired if the two conditions share subjects (e.g. interictal vs ictal sessions of the same patients) and unpaired otherwise (e.g. controls vs patients);
-- ***Stats_level***: `'subject'` to average the scans of each subject within a condition, so that each subject counts once (recommended when subjects have several scans per condition), or `'scan'` to treat each scan as an independent observation;
-- ***n_permutations***: number of permutations. The smallest possible p-value is 1/(n_permutations+1), so at least ~4200 permutations are needed to reach the strictest threshold 0.05/sum(rangeK) for K = 2:20 (e.g. 1000 for a first quick analysis, 10000 for final results);
+- ***Paired_tests***: 0 (unpaired, Welch's t), 1 (paired t, subjects paired by ID) or `'auto'` (for each pair of conditions, paired if they share subjects, e.g. two sessions of the same patients, and unpaired otherwise, e.g. controls vs patients);
+- ***Stats_level***: `'subject'` to average the scans of each subject within a condition, so that each subject counts once (recommended when subjects have several scans per condition), or `'scan'`;
+- ***n_permutations***: number of permutations. The smallest possible p-value is 1/(n_permutations+1), so more than ~4200 permutations are needed to reach the strictest threshold 0.05/sum(rangeK) for K = 2:20 (e.g. 1000 for a first quick analysis, 10000 or more for final results);
 - ***n_bootstraps***: number of bootstrap samples for the 95% confidence interval of the effect sizes (0 to skip, e.g. 1000 for final results);
-- ***CortexDirection***: direction to plot the FC states/brain (`'SideView'` or `'TopView'`);
-- ***Run_eigenvectors***, ***Run_clustering***: set to 0 to reuse the eigenvectors and clusters computed in a previous run (e.g. to test a new study design).
+- ***Condition_source***: how to assign each scan to a condition: `'filename'` (a scan belongs to the condition whose tag is found in its file path), `'metadata'` (from a .csv/.xlsx table) or `'none'` (only the centroid pyramid);
+- ***Metadata_file***, ***Metadata_subject_column***, ***Metadata_session_column***: metadata table and its columns with the subject and session IDs as in the folder/file names. The header is the first row containing the subject column (rows above it, e.g. units, are ignored); all sheets of a spreadsheet are read and the sheet name is available as a column `'sheet'`.
 
-After filling the input parameters click *Run* on your Matlab dashboard.
+Each design is defined as *Designs.<name>* with:
 
-Output:
+- ***Condition_tags***: conditions to compare: tags in the file paths (`'filename'`) or values of *Condition_column* (`'metadata'`). A condition can group several tags, e.g. `{{'ses-interictal','ses-preictal','ses-postictal'},'ses-ictal'}`. Scans not in any condition are left out of the statistics;
+- ***Condition_names***: names of the conditions in the figures, in the same order;
+- ***Condition_column*** (`'metadata'` only): column with the condition.
 
-- Creates a directory to store the results from the LEiDA analyses;
-- (If *Data_space* is `'MNI'`) Parcellates the data and saves it in the folder *Parcellated_<Parcellation>* inside the results folder;
-- Computes the leading eigenvectors of the data and saves them in the file *LEiDA_EigenVectors.mat*, together with *Scan_info*, a table with the file, subject and session of each scan;
-- Clusters the leading eigenvectors of all scans and saves the clusters in the file *LEiDA_Clusters.mat*;
-- Assigns each scan to a condition and saves it in *LEiDA_Conditions.mat* (with *Scan_info* including all the columns of the metadata table);
-- Computes the fractional occupancy, performs hypothesis (permutation) tests to compare the mean fractional occupancy across conditions and saves the results in the file *LEiDA_Stats_FracOccup.mat*;
-- Plots figure with two-sided p-values obtained from the comparison of the mean fractional occupancy, plots figures with barplots of the fractional occupancy values and saves the figures in png and fig format;
-- Plots the PL states (centroids) obtained by clustering the leading eigenvectors and saves the figure in png and fig format;
+***Design_name*** selects the design analysed in the run.
+
+### 3. Steps to run
+
+- ***Run_eigenvectors***, ***Run_clustering***: 1 to compute the eigenvectors / clusters again; 0 to reuse those of a previous run (computed anyway if not found);
+- ***Run_design***: 1 to compute the statistics and figures of the design for all K; 0 to reuse them;
+- ***Analyse_K***: values of K whose FC states are analysed (e.g. `[6 9]`; `[]` for none);
+- ***Analyse_states***: FC states analysed individually, one row `[K c]` per state (e.g. `[6 4; 9 2]`; `[]` for none).
+
+---
+
+## Outputs
+
+```
+Results_directory/LEiDA_Results_<run_name>/
+    LEiDA_Parameters.mat        parameters of the run
+    LEiDA_EigenVectors.mat      leading eigenvectors (V1_all), scan of each (Time_sessions), Scan_info (file, subject, session of each scan)
+    LEiDA_Clusters.mat          k-means results for each K (Kmeans_results, rangeK)
+    Parcellated_<atlas>/        parcellated data (only if Data_space = 'MNI')
+    Design_<design name>/
+        LEiDA_Parameters.mat        parameters of the run and the design
+        LEiDA_Conditions.mat        condition of each scan, Scan_info with the metadata
+        LEiDA_Stats_FracOccup.mat   fractional occupancy, p-values, effect sizes and CIs
+        FracOccup_pvalues           p-values across K for each pair of conditions
+        FracOccup_effetcsize        effect sizes across K for each pair of conditions
+        FracOccup_Barplot_*         pyramids of barplots (all conditions, and each pair)
+        Centroid_Pyramid_*          FC states for all K, colored by Yeo network, with the fractional occupancy of each condition
+        K<K>/                       figures of LEiDA_AnalysisK
+        K<K>C<c>/                   summary figure of LEiDA_AnalysisCentroid
+```
+
+All figures are saved as .png (600 dpi) and .fig, and stay open after saving. The console also prints the number of scans in each condition, the test used for each pair of conditions and the 10 largest effect sizes of each pair, with their confidence intervals and p-values.
 
 ---
 
@@ -116,51 +131,51 @@ The input data should be contained in the folder specified in *Data_directory* (
 
 ---
 
-## LEiDA Analysis K
+## Functions
 
-The function ***LEiDA_AnalysisK.m*** plots a number of relevant figures to analyse the LEiDA results for a specific number of FC states K, selected by the user from the outputs of *LEiDA_Start.m*. The user is expected to only need to change the inputs in *Section A*; the parcellation and the statistics are read from the results of *LEiDA_Start.m*.
+Main steps (called from *LEiDA_Main*):
 
-Input parameters:
+| Function | Description |
+|---|---|
+| *LEiDA_Main* | Parameters of the analysis and calls to the steps below |
+| *LEiDA_Start* | Step 1: eigenvectors and clustering (computed once, reused afterwards) |
+| *LEiDA_Design* | Step 2: conditions, statistics and figures of a study design for all K |
+| *LEiDA_AnalysisK* | Step 3: figures of the FC states of one K |
+| *LEiDA_AnalysisCentroid* | Step 4: summary figure of one FC state |
 
-- ***Results_directory***, ***run_name***: as in *LEiDA_Start.m*;
-- ***Design_name***: study design whose statistics are shown (as in *LEiDA_Start.m*); `''` for the last design run;
-- ***SelectK***: number of FC states K.
+Analysis:
 
-Output, saved in the folder *K<SelectK>* of the design:
+| Function | Description |
+|---|---|
+| *Parcellate* | Mean time series of each parcel of an atlas from 4D NIfTI data in MNI 2mm space |
+| *LEiDA_data* | Reads the scans (any orientation and file format), repairs missing or flat areas, and computes the leading eigenvector of the phase coherence at each TR |
+| *TemporalFiltering* | Band-pass Butterworth filter of the time series |
+| *LEiDA_cluster* | k-means clustering (cosine distance) of all eigenvectors for each K; states ordered by occupancy |
+| *LEiDA_conditions* | Condition of each scan from tags in the file paths or a metadata table |
+| *LEiDA_stats_FracOccup* | Fractional occupancy of each FC state in each scan, and tests between conditions |
+| *LEiDA_compare_conditions* | Tests between each pair of conditions (paired/unpaired, per subject or scan) |
+| *permutation_test* | Permutation test (Welch's t or paired t), exact permutation p-values, Hedges' g and bootstrap CI |
+| *Overlap_LEiDA_Yeo* | Weighted Dice and fraction of each FC state within the 7 Yeo networks, and network assigned |
 
-- FC states as links in cortex (strongest links between the areas with positive values in the centroid);
-- FC states as nodes in cortex, each area colored and scaled according to its value in the centroid;
-- FC states rendered in a 3D glass brain, colored by their Yeo network (Yeo et al., 2011);
-- FC states in matrix format;
-- FC states in vector format with numbered areas;
-- Fractional occupancy of each FC state in each condition (one point per subject, or scan), with the significant pairs of conditions;
-- Summary of the repertoire: 3D glass brain, vector and fractional occupancy of each FC state;
-- Overlap (weighted Dice) between the K FC states and the 7 Yeo networks.
+Figures:
 
----
+| Function | Description |
+|---|---|
+| *Plot_FracOccup* | p-values and effect sizes across K, pyramids of barplots of the fractional occupancy |
+| *Plot_Centroid_Pyramid* | FC states for all K colored by Yeo network, with the fractional occupancy of each condition, the 7 networks for reference and a legend |
+| *Plot_Centroid_Summary* | Summary of one FC state: brain renderings, links, Yeo overlap, areas, fractional occupancy and statistics |
+| *Plot_FO_boxplot* | Fractional occupancy of one FC state per subject in each condition, with the significant pairs |
+| *Plot_K_links_in_cortex*, *Plot_K_nodes_in_cortex*, *Plot_K_3Dbrain*, *Plot_K_matrix*, *Plot_K_vector_numbered*, *Plot_K_boxplot_FO*, *Plot_K_repertoire*, *Plot_K_overlap_yeo_nets* | Figures of the FC states of one K (see LEiDA_AnalysisK) |
 
-## LEiDA Analysis Centroid
-
-The function ***LEiDA_AnalysisCentroid.m*** analyses one FC state (centroid) obtained with *LEiDA_Start.m*, for example a state whose fractional occupancy differs between conditions in the centroid pyramid. The user is expected to only need to change the inputs in *Section A*; the parcellation and the statistics are read from the results of *LEiDA_Start.m*.
-
-Input parameters:
-
-- ***Results_directory***, ***run_name***: as in *LEiDA_Start.m*;
-- ***Design_name***: study design whose statistics are shown (as in *LEiDA_Start.m*); `''` for the last design run;
-- ***SelectK***: number of FC states K;
-- ***Centroid***: FC state to analyse (1 <= Centroid <= SelectK).
-
-Output (*Plot_Centroid_Summary.m*), saved in the folder *K<SelectK>C<Centroid>* of the design:
-
-- The FC state rendered in a transparent brain (side and top views), colored with the Yeo network assigned to it;
-- The strongest links between the areas with positive values in the centroid;
-- The overlap with each of the 7 Yeo networks: weighted Dice, largest Dice reachable with the parcellation, and fraction of the state within each network;
-- The areas of the FC state, ordered by their value in the centroid;
-- The fractional occupancy in each condition (one point per subject, or per scan), with lines joining the sessions of the same subject in paired comparisons, and the p-value, Hedges' g and its 95% bootstrap confidence interval for each pair of conditions.
+Helpers: *Atlas_Nparcels* (parcels of an atlas), *Parcellation_labels* (area names), *Parcel_centers* (area centers), *Areas_order* (left/right order of AAL areas), *Yeo_colors* (colors and names of the Yeo networks), *Significance_color* (colors of the significance levels), *FracOccup_mean_sem* and *FracOccup_values* (fractional occupancy per subject or scan), *Draw_links_in_cortex*, *Plot_Yeo_reference*, *Pyramid_layout*, *Pyramid_axes*, *Pyramid_labels*, *Pyramid_legend* (layout of the pyramid figures), *Save_png* (600 dpi), *subplot_tight*.
 
 ---
 
-## LEiDA Transitions K
+## Not yet integrated in LEiDA_Main
+
+These functions have not been revised yet and still have their own parameters (and paths of a previous study) in their first section. They will be integrated as additional steps of *LEiDA_Main*.
+
+### LEiDA Transitions K
 
 The function ***LEiDA_TransitionsK.m*** should be used to analyse the state-to-state transitions considering a state space of dimension to be defined by the user, i.e., by the value selected for K. This function is divided into two sections. The user is expected to only need to change the inputs in *Section A*.
 
@@ -180,9 +195,9 @@ Output:
 
 ---
 
-## LEiDA State Time Courses
+### LEiDA State Time Courses
 
-The function ***LEiDA_TransitionsK.m*** should be used to analyse the state time courses defined for a specified value of K across participants and for a given subject. This function is divided into two sections. The user is expected to only need to change the inputs in *Section A*.
+The function ***LEiDA_StateTime.m*** should be used to analyse the state time courses defined for a specified value of K across participants and for a given subject. This function is divided into two sections. The user is expected to only need to change the inputs in *Section A*.
 
 Input parameters:
 
@@ -198,3 +213,10 @@ Output:
 - Plots the state time courses considering K PL states for all participants and separates them by condition;
 - Plots the state time course for a given subject as cluster blocks;
 - Plots the state time course for a given subject as stairs plot;
+### Other functions
+
+- *LEiDA_diam_cluster*, *pdfc_diametrical_clustering*, *pdfc_diametrical_clustering_plusplus*: diametrical clustering, an alternative to k-means;
+- *cluster_performance*, *cluster_stability*, *dunns*, *rand_index*: quality and stability of the clustering solutions;
+- *EigenVectors_VoxelSpace*, *Plot_K_V1_VoxelSpace*, *Plot_K_V1_VoxelSpace_Slice*, *VIDEO_fMRI_Slices*: voxel-space visualisations (see also the LEiDA_Voxel repository);
+- *Parcellate_ABIDE_func_preproc*: parcellation of the ABIDE dataset;
+- *Plot_C_summary*, *Plot_C_vector_labelled*, *Plot_C_vector_ordered*, *Plot_C_boxplot_FO*, *Plot_K_vector_labelled*: previous single-state figures, replaced by *Plot_Centroid_Summary*.

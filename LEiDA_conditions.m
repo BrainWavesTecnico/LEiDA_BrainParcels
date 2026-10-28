@@ -1,4 +1,4 @@
-function [Index_Conditions,Condition_tags,Scan_info] = LEiDA_conditions(data_dir,source,Condition_tags,metadata_file,subject_column,session_column,condition_column)
+function [Index_Conditions,Condition_tags,Scan_info] = LEiDA_conditions(data_dir,source,Condition_tags,metadata_file,subject_column,session_column,condition_column,save_dir)
 %
 % Assign each scan to a condition, either from tags in the file names or
 % from a metadata table (.csv, .txt, .xlsx, .xls).
@@ -21,6 +21,8 @@ function [Index_Conditions,Condition_tags,Scan_info] = LEiDA_conditions(data_dir
 % condition_column  column of the table with the condition; in
 %                   spreadsheets with several sheets, use 'sheet' for the
 %                   name of the sheet
+% save_dir          directory to save LEiDA_Conditions.mat (default
+%                   data_dir)
 %
 % OUTPUT:
 % Index_Conditions  (1 x n_scans) condition of each scan (index in
@@ -140,7 +142,10 @@ for c = 1:numel(Condition_tags)
 end
 disp(' ')
 
-save(fullfile(data_dir,'LEiDA_Conditions.mat'),'Index_Conditions','Condition_tags','Scan_info')
+if nargin < 8 || isempty(save_dir)
+    save_dir = data_dir;
+end
+save(fullfile(save_dir,'LEiDA_Conditions.mat'),'Index_Conditions','Condition_tags','Scan_info')
 end
 
 

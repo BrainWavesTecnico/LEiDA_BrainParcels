@@ -1,4 +1,4 @@
-function Plot_Centroid_Pyramid(data_dir,cond,parcellation,n_areas,cortex_dir,stat_of_interest)
+function Plot_Centroid_Pyramid(data_dir,cond,parcellation,n_areas,cortex_dir,stat_of_interest,design_dir)
 %
 % Plot of the rendered centroids on cortical space and overlap with Yeo
 % functional brain networks (Yeo et al. 2011). If the fractional occupancy
@@ -25,6 +25,9 @@ function Plot_Centroid_Pyramid(data_dir,cond,parcellation,n_areas,cortex_dir,sta
 %               any pair of conditions: the smallest p-value over all
 %               pairs, Bonferroni-corrected for the number of pairs.
 %               Default: 1 with 2 conditions, 'any' with more
+% design_dir    directory with the statistics of the study design
+%               (LEiDA_Stats_FracOccup.mat), where the figure is saved
+%               (default data_dir)
 %
 % OUTPUT:
 % Fig           FC states rendered on a transparent cortex with their
@@ -46,6 +49,9 @@ end
 
 % Load required data:
 load([data_dir file_clusters],'Kmeans_results', 'rangeK');
+if nargin < 7 || isempty(design_dir)
+    design_dir = data_dir;
+end
 
 if isempty(n_areas)
     n_areas = size(Kmeans_results{1}.C,2);
@@ -69,9 +75,9 @@ end
 
 % Fractional occupancy statistics (output from LEiDA_stats_FracOccup.m)
 file_FracOccup = 'LEiDA_Stats_FracOccup.mat';
-plot_FO = n_Cond >= 2 && isfile([data_dir file_FracOccup]);
+plot_FO = n_Cond >= 2 && isfile([design_dir file_FracOccup]);
 if plot_FO
-    load([data_dir file_FracOccup], 'P', 'P_pval2sided', 'Index_Conditions', 'Subjects', 'stats_level');
+    load([design_dir file_FracOccup], 'P', 'P_pval2sided', 'Index_Conditions', 'Subjects', 'stats_level');
     if ~exist('stats_level','var')
         stats_level = 'scan';
     end
@@ -226,8 +232,8 @@ if plot_FO
 else
     save_name = ['Centroid_Pyramid_' cortex_dir];
 end
-Save_png(Fig, fullfile(data_dir, [save_name '.png']));
-saveas(Fig, fullfile(data_dir, [save_name '.fig']),'fig');
+Save_png(Fig, fullfile(design_dir, [save_name '.png']));
+saveas(Fig, fullfile(design_dir, [save_name '.fig']),'fig');
 disp(['- Plot successfully saved as ' save_name]);
 
 disp(' ')
