@@ -34,6 +34,8 @@ n_areas = size(V,1);
 
 % LEiDA networks colored according to closest RSN
 Volume = struct2array(load('ParcelsMNI2mm',['V_' parcellation]));
+% Only the areas considered
+Volume(Volume > n_areas) = 0;
 Brain_Mask = niftiread('MNI152_T1_2mm_brain_mask.nii');
 scortex = smooth3(Brain_Mask > 0);
 
@@ -83,7 +85,7 @@ for c = 1:selectedK
             end
         end
     else % Plot of the global mode with "gray/transparent" color
-        region_Vol = Volume > 0 & Volume <= 90; % 3D volume with 1 only in the voxels of that area
+        region_Vol = Volume > 0; % 3D volume with 1 only in the voxels of that area
         sregion = smooth3(region_Vol > 0);
         patch(isosurface(sregion,0.3), 'FaceColor', [.6 .6 .6], 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
     end
@@ -131,7 +133,7 @@ for c = 1:selectedK
             end
         end
     else
-        region_Vol = Volume > 0 & Volume <= 90; % 3D volume with 1 only in the voxels of that area
+        region_Vol = Volume > 0; % 3D volume with 1 only in the voxels of that area
         sregion = smooth3(region_Vol > 0);
         patch(isosurface(sregion,0.3), 'FaceColor', [.6 .6 .6], 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
     end

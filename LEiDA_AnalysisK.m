@@ -1,113 +1,107 @@
 function LEiDA_AnalysisK
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                  LEADING EIGENVECTOR DYNAMICS ANALYSIS            
+%                  LEADING EIGENVECTOR DYNAMICS ANALYSIS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Function to analyse the PL states chosen according to the analysis from
-% LEiDA_Start. The user should select a value for K and this function will
-% return summary plots of the set of PL states. This function contains two
-% sections: (A) user input parameters; and (B) code to plot the figures for
-% the select K. The user should only need to adapt section A.
+% Function to analyse the set of K FC states (PL states) chosen according
+% to the analysis from LEiDA_Start. The user should select a value for K
+% and this function will return summary plots of the set of FC states.
+% This function contains two sections: (A) user input parameters; and (B)
+% code to plot the figures for the selected K. The user should only need
+% to adapt section A.
 %
-% Start by reading the README.md file.
+% The parcellation and the statistics are read from the results of
+% LEiDA_Start (LEiDA_Parameters.mat, LEiDA_Clusters.mat and the
+% LEiDA_Stats_FracOccup.mat of the study design).
 %
-% A: User input parameters
 % B: Analysis plots for selected K:
-%    - Plot PL states as links in cortex
-%    - Plot PL states as nodes in cortex
-%    - Plot PL states in 3D glass brain
-%    - Plot PL states in matrix format
-%    - Plot PL states in vector format with number of each parcel
-%    - Plot boxplot of fractional occupancy values
-%    - Plot of summary information for the repertoire of K PL states
-%    - Plot overlap of PL states with RSNs defined by Yeo et al., (2011)
+%    - FC states as links in cortex
+%    - FC states as nodes in cortex
+%    - FC states in 3D glass brain, colored by their Yeo network
+%    - FC states in matrix format
+%    - FC states in vector format with number of each parcel
+%    - Fractional occupancy of each FC state in each condition
+%    - Summary of the repertoire of K FC states
+%    - Overlap of the FC states with the Yeo networks (Yeo et al. 2011)
 %
 % Tutorial: README.md
-% Version:  V1.0, May 2022
+% Version:  V2.0, October 2026
 % Authors:  Joana Cabral, Universidade do Minho, joanacabral@med.uminho.pt
 %           Miguel Farinha, ICVS/2CA-Braga, miguel.farinha@ccabraga.pt
 
 %% A: USER INPUT PARAMETERS
 
-% Define K value, i.e., K returning the most significant differences between conditions:
-SelectK = 9;
-
-% Name of the run to be used to create the folder to save the data:
-run = 3;
-
-% Directory of the LEiDA toolbox folder:
-LEiDA_directory = '/Users/user/Documents/Research/CognitiveDecline/DONAU/LEiDA_Toolbox_May2025/';
-
-run_names = {'DONAU_1_Schaefer_100_cortical';
-             'DONAU_2_Schaefer_119_cortical_subcortical';
-             'DONAU_3_Desikan_70_cortical';
-             'DONAU_4__Desikan_89_cortical_subcortical';
-             'DONAU_5_Glasser_360_cortical';
-             'DONAU_6_Glasser_379_cortical_subcortical'};
-
-run_name = run_names{run};
-
-if run == 1 || run == 2
-    Parcellation = 'Schaefer100';
-    N_areas=100;
-elseif run == 3 || run == 4
-    Parcellation = 'Desikan';
-    N_areas=70;
-elseif run == 5 || run == 6
-    Parcellation = 'Glasser';
-    N_areas=360;
-end
-
-if run == 2 || run == 4 || run == 6
-    Subcortical = 1;
-else
-    Subcortical = 0;
-end
-
-addpath(genpath(LEiDA_directory))
+% Folder with the results and name of the run (as in LEiDA_Start):
+Results_directory = '/Users/user/Documents/Research/MIGRAINE/LEiDA_Results/';
+run_name = 'MIGRAINE_AAL90';
+% Study design whose statistics are shown (Design_name in LEiDA_Start).
+% Leave '' to use the statistics of the last design run (in the results
+% folder of the run):
+Design_name = 'Migraine_cycle';
+% Number of FC states K to analyse:
+SelectK = 6;
 
 % AFTER FILLING IN THE INPUT PARAMETERS:
 % ||||||||||||||||||||||||||||||| CLICK RUN |||||||||||||||||||||||||||||||
 
-% Go to the directory containing the LEiDA functions
-cd(LEiDA_directory)
+% Add the LEiDA functions (the folder containing this file) to the path
+LEiDA_directory = fileparts(mfilename('fullpath'));
+addpath(genpath(LEiDA_directory))
 
-% Directory with the results from LEiDA
-leida_res = [LEiDA_directory 'LEiDA_Results_' run_name '/'];
-% Create a directory to store results for defined value of K
-if ~exist([leida_res 'K' num2str(SelectK) '/'], 'dir')
-    mkdir([leida_res 'K' num2str(SelectK) '/']);
+% Results of the run and parameters used in LEiDA_Start
+leida_results = [fullfile(Results_directory,['LEiDA_Results_' run_name]) filesep];
+if ~isfile([leida_results 'LEiDA_Parameters.mat'])
+    error('LEiDA:analysisK','LEiDA_Parameters.mat not found in %s; run LEiDA_Start first',leida_results);
 end
-K_dir = [leida_res 'K' num2str(SelectK) '/'];
+load([leida_results 'LEiDA_Parameters.mat'],'Parcellation');
+if isempty(Atlas_Nparcels(Parcellation))
+    error('LEiDA:analysisK','The figures need a parcellation available in ParcelsMNI2mm.mat');
+end
 
+% Statistics of the study design, and folder to save the figures
+if isempty(Design_name)
+    design_dir = leida_results;
+else
+    design_dir = [leida_results 'Design_' Design_name filesep];
+end
+stats_file = [design_dir 'LEiDA_Stats_FracOccup.mat'];
+if ~isfile(stats_file)
+    warning('LEiDA:analysisK','%s not found: the fractional occupancy is not shown',stats_file);
+    stats_file = '';
+end
+K_dir = [design_dir 'K' num2str(SelectK) filesep];
+if ~exist(K_dir,'dir')
+    mkdir(K_dir);
+end
 
-%% ANALYSE K CENTROIDS SELECTED ACCORDING TO OUTPUT FROM LEiDA_Start
-
+%% B: FIGURES FOR THE K FC STATES
 
 disp(' ')
-disp(['%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FIGURES FOR K = ' num2str(SelectK) ' PL STATES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'])
+disp(['%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FIGURES FOR K = ' num2str(SelectK) ' FC STATES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'])
 
-% Plot PL states as links in cortex
-Plot_K_links_in_cortex(leida_res,K_dir,SelectK,Parcellation,Subcortical);
+% FC states as links in cortex
+Plot_K_links_in_cortex(leida_results,K_dir,SelectK,Parcellation);
 
-% Plot PL states as nodes in cortex
-Plot_K_nodes_in_cortex(leida_res,K_dir,SelectK,Parcellation);
+% FC states as nodes in cortex
+Plot_K_nodes_in_cortex(leida_results,K_dir,SelectK,Parcellation);
 
-% Plot PL states in 3D glass brain
-Plot_K_3Dbrain(leida_res,K_dir,SelectK,Parcellation);
+% FC states in 3D glass brain
+Plot_K_3Dbrain(leida_results,K_dir,SelectK,Parcellation);
 
-% Plot PL states in matrix format
-Plot_K_matrix(leida_res,K_dir,SelectK);
+% FC states in matrix format
+Plot_K_matrix(leida_results,K_dir,SelectK,Parcellation);
 
-% Plot PL states in vector format with number of each parcel
-Plot_K_vector_numbered(leida_res,K_dir,SelectK);
+% FC states in vector format with number of each parcel
+Plot_K_vector_numbered(leida_results,K_dir,SelectK,Parcellation);
 
-% Plot boxplot of fractional occupancy values
-Plot_K_boxplot_FO(leida_res,K_dir,SelectK,Parcellation);
+% Fractional occupancy of each FC state in each condition
+if ~isempty(stats_file)
+    Plot_K_boxplot_FO(leida_results,stats_file,K_dir,SelectK,Parcellation);
+end
 
-% Plot of summary information for the repertoire of K PL states
-Plot_K_repertoire(leida_res,K_dir,SelectK,Parcellation);
+% Summary of the repertoire of K FC states
+Plot_K_repertoire(leida_results,stats_file,K_dir,SelectK,Parcellation);
 
-% Plot overlap between PL states and Yeo RSNs
-Plot_K_overlap_yeo_nets(leida_res,K_dir,SelectK,Parcellation)
+% Overlap between FC states and Yeo networks
+Plot_K_overlap_yeo_nets(leida_results,K_dir,SelectK,Parcellation)

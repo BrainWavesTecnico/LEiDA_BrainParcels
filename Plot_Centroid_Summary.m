@@ -154,7 +154,7 @@ box off
 % Fractional occupancy in each condition
 nexttile(6,[1 2])
 if ~isempty(stats_file) && isfile(stats_file)
-    Plot_FO_conditions(stats_file,k,selectedC,rangeK,state_color);
+    Plot_FO_boxplot(stats_file,k,selectedC,rangeK,state_color,false);
 else
     axis off
     text(0.5,0.5,'No fractional occupancy statistics (run LEiDA\_Start with conditions)','HorizontalAlignment','center')
@@ -169,69 +169,3 @@ saveas(Fig,fullfile(save_dir,[file_name '.fig']),'fig');
 disp(['- Plot successfully saved as ' fullfile(save_dir,file_name)]);
 end
 
-
-function Plot_FO_conditions(stats_file,k,c,rangeK,state_color)
-% Boxplot of the fractional occupancy of FC state c in each condition, with
-% one point per observation used in the tests, lines between the values of
-% the same subject in paired comparisons of adjacent conditions, and the
-% p-value, effect size and confidence interval of each pair of conditions
-
-load(stats_file,'cond','P','P_pval2sided','Index_Conditions','Subjects','stats_level',...
-     'effectsize_signed','effectsize_ci');
-S = load(stats_file,'paired_test');
-n_Cond = numel(cond);
-[values,subjects] = FracOccup_values(P,Index_Conditions,Subjects,stats_level,n_Cond,k,c);
-[cond2,cond1] = find(triu(ones(n_Cond),1)');
-if isfield(S,'paired_test')
-    paired = S.paired_test;
-else
-    paired = zeros(numel(cond1),1);
-end
-
-hold on
-% Lines between the values of the same subject (paired comparisons of
-% adjacent conditions)
-for pair = 1:numel(cond1)
-    if paired(pair) && cond2(pair) == cond1(pair) + 1
-        [~,i1,i2] = intersect(subjects{cond1(pair)},subjects{cond2(pair)},'stable');
-        plot([cond1(pair) cond2(pair)],[values{cond1(pair)}(i1) values{cond2(pair)}(i2)]',...
-             '-','Color',[0.75 0.75 0.75],'LineWidth',0.5)
-    end
-end
-% Boxplots and points
-g = repelem(1:n_Cond,cellfun(@numel,values))';
-boxplot(vertcat(values{:}),g,'Colors','k','Symbol','','Widths',0.4);
-for j = 1:n_Cond
-    x = j + 0.08*randn(numel(values{j}),1);
-    scatter(x,values{j},18,state_color,'filled','MarkerFaceAlpha',0.6)
-end
-set(gca,'XTick',1:n_Cond,'XTickLabel',cond,'FontSize',12,'TickLabelInterpreter','none')
-ylabel(['Fractional occupancy (one point per ' stats_level ')'],'FontSize',12)
-
-% Significance bars: p-value, Hedges' g [95% CI], colored by significance
-y_max = max(vertcat(values{:}));
-step = 0.12*max(y_max,eps);
-for pair = 1:numel(cond1)
-    p = P_pval2sided(pair,k,c);
-    g_val = effectsize_signed(pair,k,c);
-    ci = squeeze(effectsize_ci(pair,k,c,:));
-    color = Significance_color(p,rangeK(k),rangeK);
-    y = y_max + pair*step;
-    plot([cond1(pair) cond2(pair)],[y y],'-','Color',color,'LineWidth',1.2)
-    if all(isfinite(ci))
-        g_str = sprintf('g = %.2f [%.2f, %.2f]',g_val,ci(1),ci(2));
-    else
-        g_str = sprintf('g = %.2f',g_val);
-    end
-    if paired(pair)
-        g_str = [g_str ' (paired)']; %#ok<AGROW>
-    end
-    text(mean([cond1(pair) cond2(pair)]),y,sprintf('p = %.2g, %s',p,g_str),'Color',color,...
-         'HorizontalAlignment','center','VerticalAlignment','bottom','FontSize',10)
-end
-ylim([0 y_max + (numel(cond1)+1)*step])
-xlim([0.4 n_Cond+0.6])
-title('Fractional occupancy (g > 0: left condition higher)','FontSize',11)
-hold off
-box off
-end

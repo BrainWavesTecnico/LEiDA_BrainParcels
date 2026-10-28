@@ -118,30 +118,24 @@ The input data should be contained in the folder specified in *Data_directory* (
 
 ## LEiDA Analysis K
 
-The function ***LEiDA_AnalysisK.m*** plots a number of relevant figures to analyse the LEiDA results for a specific number of clusters. Based on the based on the outputs from the previous analyses (*LEiDA_Start.m*) the user should select one or more values for K to explore with greater detail. This function is divided into two sections. The user is expected to only need to change the inputs in *Section A*.
+The function ***LEiDA_AnalysisK.m*** plots a number of relevant figures to analyse the LEiDA results for a specific number of FC states K, selected by the user from the outputs of *LEiDA_Start.m*. The user is expected to only need to change the inputs in *Section A*; the parcellation and the statistics are read from the results of *LEiDA_Start.m*.
 
 Input parameters:
 
-- ***SelectK***: define the number of PL states to consider for further analyses;
-- ***LEiDA_directory***: main directory of the LEiDA Toolbox; this should be a folder containing a folder (for example, designated LEiDA_Functions) which contains all the functions available in the toolbox;
-- ***run_name***: name of the current run to be used to create a folder to save the results from the LEiDA analyses;
-- ***Parcellation***: parcellation template applied to the segment the fMRI data;
+- ***Results_directory***, ***run_name***: as in *LEiDA_Start.m*;
+- ***Design_name***: study design whose statistics are shown (as in *LEiDA_Start.m*); `''` for the last design run;
+- ***SelectK***: number of FC states K.
 
-After filling the input parameters click *Run* on your Matlab dashboard.
+Output, saved in the folder *K<SelectK>* of the design:
 
-Output:
-
-- Plots several plots of the selected K:
-    - PL states as links in cortex between the brain areas with positive values in the centroid vector;
-    - PL states as nodes in cortex, where each brain area is coloured and scaled according to its value in the centroid vector;
-    - PL states rendered in a 3D glass brain indicating the overlap with the functional brain networks defined by Yeo et al., (2011);
-    - PL states in matrix format;
-    - PL states in vector format with numbered areas;  
-    - Boxplot of the fractional occupancy values of all K PL states;
-    - PL states rendered in 3D glass brain, in vector format and boxplots of the fractional occupancy values;
-    - Overlap between the K PL states and the 7 RSNs defined by Yeo et al., (2011);
-
-The plots are saved in new directory created according to the value defined for K.
+- FC states as links in cortex (strongest links between the areas with positive values in the centroid);
+- FC states as nodes in cortex, each area colored and scaled according to its value in the centroid;
+- FC states rendered in a 3D glass brain, colored by their Yeo network (Yeo et al., 2011);
+- FC states in matrix format;
+- FC states in vector format with numbered areas;
+- Fractional occupancy of each FC state in each condition (one point per subject, or scan), with the significant pairs of conditions;
+- Summary of the repertoire: 3D glass brain, vector and fractional occupancy of each FC state;
+- Overlap (weighted Dice) between the K FC states and the 7 Yeo networks.
 
 ---
 

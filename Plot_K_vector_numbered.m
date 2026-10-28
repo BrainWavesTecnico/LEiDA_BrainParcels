@@ -1,4 +1,4 @@
-function Plot_K_vector_numbered(data_dir,save_dir,selectedK)
+function Plot_K_vector_numbered(data_dir,save_dir,selectedK,parcellation)
 %
 % Plot the centroids in vector format with the number of each area.
 %
@@ -6,6 +6,7 @@ function Plot_K_vector_numbered(data_dir,save_dir,selectedK)
 % data_dir      directory where LEiDA results are stored
 % save_dir      directory to save results for selected optimal K
 % selectedK     K defined by the user
+% parcellation  parcellation (for the order of the areas, see Areas_order)
 %
 % OUTPUT:
 % .fig/.png     Plot each centroid as a barplot and number of each area
@@ -30,8 +31,8 @@ clear Kmeans_results
 % Get the number of areas based on centroids size
 n_areas = size(V,1);
 
-% Reorder the position of each parcel
-Order = [1:2:n_areas n_areas:-2:2];
+% Order of the areas (left then right hemisphere in AAL)
+Order = Areas_order(parcellation,n_areas);
 
 disp(' ');
 disp(['Plotting the ' num2str(selectedK) ' PL states as barplot with numbered areas:'])
