@@ -152,6 +152,6 @@ set(gca,'FontSize',14,'FontWeight','bold')
 axis square
 box off
   
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_ClusterStability.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_ClusterStability.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_ClusterStability.fig']),'fig');
 disp(['- Plot of the clustering stability results successfully saved as K' num2str(selectedK) '_ClusterStability']);

@@ -391,7 +391,7 @@ scortex = smooth3(Brain_Mask > 0);
     
 
 
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_Summary.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_Summary.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_Summary.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) 'C' num2str(centroid) '_Summary']);
 

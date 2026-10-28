@@ -113,6 +113,6 @@ for c = 1:selectedK
     xlim([5 105]); ylim([5 85]); zlim([0 80])
     
 end
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_LinksCortex.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_LinksCortex.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_LinksCortex.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_LinksCortex']);

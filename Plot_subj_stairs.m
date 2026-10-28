@@ -83,7 +83,7 @@ xticks(2:20:Tmax-2);
 xlabel('Time (TR)', 'Fontsize', 12);
 set(gca,'TickLength',[0 0])
 box off
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_ClusterStairs.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_ClusterStairs.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_ClusterStairs.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_ClusterStairs']);
 

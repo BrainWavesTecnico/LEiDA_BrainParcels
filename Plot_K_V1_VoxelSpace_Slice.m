@@ -89,7 +89,7 @@ for Cluster = 2:selectedK
     c = c+1;
 end
 
-saveas(Fig, fullfile(K_dir, ['K' num2str(selectedK) '_V1_VoxelSlice.png']),'png');
+Save_png(Fig, fullfile(K_dir, ['K' num2str(selectedK) '_V1_VoxelSlice.png']));
 saveas(Fig, fullfile(K_dir, ['K' num2str(selectedK) '_V1_VoxelSlice.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_V1_VoxelSlice']);
 

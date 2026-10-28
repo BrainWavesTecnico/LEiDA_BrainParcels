@@ -77,6 +77,6 @@ for centroidK = 1:selectedK
     end
 end           
      
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_OverlapYeoNets.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_OverlapYeoNets.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_OverlapYeoNets.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_OverlapYeoNets']);

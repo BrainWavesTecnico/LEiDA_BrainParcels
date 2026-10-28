@@ -131,7 +131,7 @@ ylim([0 max(Y_LOCATIONS)+0.15])
 hold off
 box off
 
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_BoxplotFracOccup.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_BoxplotFracOccup.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_BoxplotFracOccup.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) 'C' num2str(centroid) '_BoxplotFracOccup']);
 

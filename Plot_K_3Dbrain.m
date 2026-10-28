@@ -145,6 +145,6 @@ for c = 1:selectedK
     
 end
 
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_3Dbrain.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_3Dbrain.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_3Dbrain.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_3Dbrain']);

@@ -97,17 +97,7 @@ if plot_FO
     % Mean and SEM of the fractional occupancy in each condition (over
     % subjects, averaging the scans of each subject, if stats_level is
     % 'subject', as in the statistical tests)
-    mean_P = zeros(n_Cond,size(P,2),size(P,3));
-    sem_P = zeros(n_Cond,size(P,2),size(P,3));
-    for j = 1:n_Cond
-        P_j = reshape(P(Index_Conditions == j,:,:),nnz(Index_Conditions == j),[]);
-        if strcmpi(stats_level,'subject')
-            [~,~,g] = unique(Subjects(Index_Conditions == j));
-            P_j = splitapply(@(x) mean(x,1),P_j,g);
-        end
-        mean_P(j,:,:) = reshape(mean(P_j,1),size(P,2),size(P,3));
-        sem_P(j,:,:) = reshape(std(P_j,0,1)/sqrt(size(P_j,1)),size(P,2),size(P,3));
-    end
+    [mean_P,sem_P] = FracOccup_mean_sem(P,Index_Conditions,Subjects,stats_level,n_Cond);
     % Two subplots per FC state: brain and fractional occupancy
     n_cols = 2*rangeK(end);
 else
@@ -125,11 +115,6 @@ disp('Computing overlap of centroids (PL states) with Yeo resting state networks
 % Colors of the 7 Yeo et al. (2011) networks (defined in Yeo_colors.m)
 YeoColor = Yeo_colors;
 
-% Colors of the significance levels: p<0.05, p<0.05/K and p<0.05/sum(K)
-darkRed = [0.6, 0, 0];
-darkGreen = [0.3, 0.5, 0];
-darkBlue = [0.07, 0.62, 1.00];
-
 % LEiDA networks colored according to closest RSN
 Volume = struct2array(load('ParcelsMNI2mm',['V_' parcellation])); 
 
@@ -140,6 +125,8 @@ scortex = smooth3(Brain_Mask > 0);
 disp(' ')
 disp(['Rendering the centroids (using ' cortex_dir '):'])
 Fig = figure('Position', get(0, 'Screensize'));
+% One row per K (plus space at the bottom for labels)
+L = Pyramid_layout(length(rangeK),n_cols);
 for k = 1:length(rangeK)
     
     % Matrix with the cluster centroids for a given K
@@ -166,9 +153,9 @@ for k = 1:length(rangeK)
         
         % View networks
         if plot_FO
-            subplot_tight(length(rangeK),n_cols,2*Centroid-1+(k-1)*n_cols,0.01)
+            Pyramid_axes(L,k,2*Centroid-1,1,[0.05 0.05]);
         else
-            subplot_tight(length(rangeK),n_cols,Centroid+(k-1)*n_cols,0.008)
+            Pyramid_axes(L,k,Centroid,1,[0.05 0.05]);
         end
              
         hold on
@@ -204,39 +191,37 @@ for k = 1:length(rangeK)
         % next to the brain, colored by the significance of the difference:
         % p<0.05, p<0.05/K, p<0.05/sum(rangeK)
         if plot_FO
-            pval = P_pval2sided(k,Centroid);
-            if pval <= 0.05/sum(rangeK)
-                sig_color = darkBlue;
-            elseif pval <= 0.05/rangeK(k)
-                sig_color = darkGreen;
-            elseif pval <= 0.05
-                sig_color = darkRed;
-            else
-                sig_color = 'k';
-            end
+            sig_color = Significance_color(P_pval2sided(k,Centroid),rangeK(k),rangeK);
 
             % Fractional occupancy of each condition (error bars without bars)
-            subplot_tight(length(rangeK),n_cols,2*Centroid+(k-1)*n_cols,0.01)
+            Pyramid_axes(L,k,2*Centroid,1,[0.2 0.15]);
             errorbar(mean_P(:,k,Centroid),sem_P(:,k,Centroid),'_','MarkerSize',2,'LineStyle','none',...
                      'Color',sig_color,'CapSize',4,'LineWidth',1);
-            set(gca,'color','none')
-            set(gca,'XTick',1:n_Cond,'XTickLabel','','YTick',[])
+            set(gca,'color','none','YTick',[],'XTick',1:n_Cond,'XTickLabel','','Fontsize',6,'TickLabelInterpreter','none')
+            % Names of the conditions under the bottom row
+            if k == length(rangeK)
+                set(gca,'XTickLabel',cond)
+                xtickangle(90)
+            end
             xlim([.4 n_Cond+.6])
             box off
         end
     end
 end
 
+% Labels of the rows (K) and of the FC states (c)
+Pyramid_labels(L,rangeK,n_cols/rangeK(end));
+
 if plot_FO
     % Legend of the fractional occupancy plots
-    annotation('textbox',[0.005 0 0.9 0.025],'EdgeColor','none','Interpreter','none','FontSize',10,...
+    annotation('textbox',[L.left 0 0.95 0.2*L.bottom],'FitBoxToText','off','VerticalAlignment','middle','EdgeColor','none','Interpreter','none','FontSize',10,...
         'String',['Fractional occupancy (mean ' char(177) ' SEM over ' stats_level 's) of ' strjoin(cond,', ') ...
                   ' (left to right). Significance (' sig_desc '): dark red p<0.05, dark green p<0.05/K, dark blue p<0.05/' num2str(sum(rangeK))])
     save_name = ['Centroid_Pyramid_' regexprep(stat_tag,'[^a-zA-Z0-9_-]','_') '_' cortex_dir];
 else
     save_name = ['Centroid_Pyramid_' cortex_dir];
 end
-saveas(Fig, fullfile(data_dir, [save_name '.png']),'png');
+Save_png(Fig, fullfile(data_dir, [save_name '.png']));
 saveas(Fig, fullfile(data_dir, [save_name '.fig']),'fig');
 disp(['- Plot successfully saved as ' save_name]);
 

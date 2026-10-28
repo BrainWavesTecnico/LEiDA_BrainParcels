@@ -211,7 +211,7 @@ if ~isfolder(save_dir)
     mkdir(save_dir);
 end
 file_name = ['K' num2str(selectedK) '_C' num2str(selectedC) '_LinksCortex_FO'];
-saveas(Fig, fullfile(save_dir, [file_name '.png']),'png');
+Save_png(Fig, fullfile(save_dir, [file_name '.png']));
 saveas(Fig, fullfile(save_dir, [file_name '.fig']),'fig');
 disp(['- Plot successfully saved as ' fullfile(save_dir, file_name)]);
 

@@ -45,6 +45,6 @@ for c = 1:selectedK
     axis square
     title(['V_{C_{' num2str(c) '}}' '.V_{C_{' num2str(c) '}}' '^T'], 'Fontsize', 12)
 end
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_Matrix.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_Matrix.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_Matrix.fig']),'fig');
 disp(['- Plot of matrices successfully saved as K' num2str(selectedK) '_Matrix']);

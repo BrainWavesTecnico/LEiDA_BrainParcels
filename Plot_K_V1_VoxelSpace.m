@@ -154,6 +154,6 @@ for c = 1:selectedK
     
 end
 
-saveas(Fig, fullfile(K_dir, ['K' num2str(selectedK) '_V1_VoxelSpace.png']),'png');
+Save_png(Fig, fullfile(K_dir, ['K' num2str(selectedK) '_V1_VoxelSpace.png']));
 saveas(Fig, fullfile(K_dir, ['K' num2str(selectedK) '_V1_VoxelSpace.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_V1_VoxelSpace']);

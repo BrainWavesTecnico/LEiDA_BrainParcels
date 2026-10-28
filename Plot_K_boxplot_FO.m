@@ -130,7 +130,7 @@ for c = 1:selectedK
     hold off
     box off
 end
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_BoxplotFracOccup.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_BoxplotFracOccup.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_BoxplotFracOccup.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_BoxplotFracOccup']);
 

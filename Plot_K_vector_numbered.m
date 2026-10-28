@@ -54,6 +54,6 @@ for c = 1:selectedK
     grid on
     title(['PL state ' num2str(c)], 'Fontsize',12)
 end
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_VectorNumber.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_VectorNumber.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_VectorNumber.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_VectorNumber']);

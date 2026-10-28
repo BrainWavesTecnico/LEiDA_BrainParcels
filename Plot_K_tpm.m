@@ -59,7 +59,7 @@ for i = 1:n_Cond
     ylabel('From FC State')
     xlabel('To FC State')
     
-    saveas(Fig, fullfile(data_dir, ['K' num2str(selectedK) '_meanTPM_' cond{i} '.png']),'png');
+    Save_png(Fig, fullfile(data_dir, ['K' num2str(selectedK) '_meanTPM_' cond{i} '.png']));
     saveas(Fig, fullfile(data_dir, ['K' num2str(selectedK) '_meanTPM_' cond{i} '.fig']),'fig');
     disp(['- Mean TPM of condition ' cond{i} ' successfully saved as K' num2str(selectedK) '_meanTPM_' cond{i}]);
 end
