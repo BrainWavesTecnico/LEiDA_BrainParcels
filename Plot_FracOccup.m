@@ -73,7 +73,7 @@ for cond1 = 1:n_Cond-1
 end
 
 % Plot of two-sided p-values from fractional occupancy hypothesis tests
-Fig1 = figure('Position', [307   323   572   344]);
+Fig1 = figure('Position', [100   100   1144   688]);
 disp(' ')
 disp('Plotting two-sided p-values from hypothesis (permutation) tests:')
 for s_ind = 1:length(subplot_indices)
@@ -160,7 +160,7 @@ end
 % Plot of Hedge's effect size from fractional occupancy hypothesis tests
 disp(' ')
 disp('Plotting Hedge''s effect size from hypothesis (permutation) tests:')
-Fig4 = figure('Position', [307   323   572   344]);
+Fig4 = figure('Position', [100   100   1144   688]);
 for s_ind = 1:length(subplot_indices)
     
     subplot_ind = subplot_indices(s_ind);
@@ -200,7 +200,8 @@ for s_ind = 1:length(subplot_indices)
     xticks([2 4 6 8 10 12 14 16 18 20])
     xlim([rangeK(1)-1 rangeK(end)+1])
     box off
-    ylim([0 1])
+    % Effect sizes above 1 are shown (not cut at the top of the axes)
+    ylim([0 max(1,ceil(10*max(effectsize(:)))/10)])
     set(gca,'YTick',[0,0.2,0.5,0.8,1])
 end
 Save_png(Fig4, fullfile(data_dir, 'FracOccup_effetcsize.png'));
