@@ -56,7 +56,7 @@ for c = 1:selectedK
         subplot(2,10,c)
     end
     
-    [~, net] = max(dice_V_yeo7(rangeK == selectedK,c,:));
+    [~, net] = max(dice_V_yeo7(rangeK == selectedK,c,:) + 2*overlap_yeo7(rangeK == selectedK,c,:));
     P_cond = cell(1,n_Cond);
     g = cell(1,n_Cond);
     for j = 1:n_Cond

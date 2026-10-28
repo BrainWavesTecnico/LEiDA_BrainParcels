@@ -1,4 +1,4 @@
-function Pyramid_legend(L,lines,rangeK)
+function Pyramid_legend(L,lines,rangeK,top_offset)
 %
 % Add the legend of a pyramid figure in its top right corner (the empty
 % part of the pyramid), followed by the colors of the significance levels.
@@ -7,8 +7,14 @@ function Pyramid_legend(L,lines,rangeK)
 % L         layout from Pyramid_layout
 % lines     cell array with the lines of text of the legend
 % rangeK    range of K (for the significance thresholds)
+% top_offset  space left empty above the legend, in rows of the pyramid
+%           (e.g. for the reference of the Yeo networks; default 0)
 %
 % Author: Joana Cabral, University of Minho, joanacabral@med.uminho.pt
+
+if nargin < 4 || isempty(top_offset)
+    top_offset = 0;
+end
 
 % Escape the TeX special characters of the text (e.g. _ in condition names)
 lines = regexprep(cellstr(lines),'([_^{}\\])','\\$1');
@@ -19,7 +25,7 @@ lines{end+1} = ['Significance: ' sig(0.05,Inf) 'p<0.05\color{black}, ' sig(0.05/
                 'p<0.05/K\color{black}, ' sig(0,1) 'p<0.05/' num2str(sum(rangeK)) '\color{black} (all K and FC states)'];
 
 % Top right corner, over the first rows (empty in the pyramid)
-n_rows = min(6,L.n_rows-1);
-annotation('textbox',[0.5 1-L.top-n_rows*L.h 0.495 n_rows*L.h],'String',lines,'FitBoxToText','off',...
+n_rows = min(4,L.n_rows-1);
+annotation('textbox',[0.5 1-L.top-(top_offset+n_rows)*L.h 0.495 n_rows*L.h],'String',lines,'FitBoxToText','off',...
            'HorizontalAlignment','right','VerticalAlignment','top','EdgeColor','none',...
            'Interpreter','tex','FontSize',11);

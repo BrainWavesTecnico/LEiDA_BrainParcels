@@ -109,7 +109,7 @@ for k = 1:length(Vo)
 end
     
 % Plot of centroid in 3D glass brain
-[~, net] = max(dice_V_yeo7(rangeK == selectedK,centroid,:));
+[~, net] = max(dice_V_yeo7(rangeK == selectedK,centroid,:) + 2*overlap_yeo7(rangeK == selectedK,centroid,:));
 subplot(2,4,2)
 hold on
 cortexpatch = patch(isosurface(scortex,0.1), 'FaceColor', [0.9 0.9 0.9], 'EdgeColor', 'none','FaceAlpha', 0.2);

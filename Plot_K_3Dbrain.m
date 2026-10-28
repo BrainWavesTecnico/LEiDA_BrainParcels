@@ -51,7 +51,7 @@ Fig = figure('Position', get(0, 'Screensize'));
 
 for c = 1:selectedK
     
-    [~, net] = max(dice_V_yeo7(rangeK == selectedK,c,:));
+    [~, net] = max(dice_V_yeo7(rangeK == selectedK,c,:) + 2*overlap_yeo7(rangeK == selectedK,c,:));
     
     % First Plot view from top
     if selectedK <= 10

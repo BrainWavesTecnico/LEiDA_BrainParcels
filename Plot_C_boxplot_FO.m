@@ -49,7 +49,7 @@ clear Kmeans_results
 
 disp(' ');
 disp(['Plotting the boxplot of fractional occupancy values by condition for PL state ' num2str(centroid) ':'])
-[~, net] = max(dice_V_yeo7(rangeK == selectedK,centroid,:));
+[~, net] = max(dice_V_yeo7(rangeK == selectedK,centroid,:) + 2*overlap_yeo7(rangeK == selectedK,centroid,:));
 P_cond = cell(1,n_Cond);
 g = cell(1,n_Cond);
 for j = 1:n_Cond

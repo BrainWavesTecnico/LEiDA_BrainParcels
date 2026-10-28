@@ -142,7 +142,8 @@ for k = 1:length(rangeK)
         end
         %V = round(V*1e2)/1e2;
         
-        [~,net] = max(dice_V_yeo7(k,Centroid,:));
+        % Network assigned to the FC state (if any; see Overlap_LEiDA_Yeo)
+        [~,net] = max(dice_V_yeo7(k,Centroid,:) + 2*overlap_yeo7(k,Centroid,:));
         
         Centroid_Vol = zeros(size(Volume));
         
@@ -212,11 +213,15 @@ end
 % Labels of the rows (K) and of the FC states (c)
 Pyramid_labels(L,rangeK,n_cols/rangeK(end));
 
+% Reference of the 7 Yeo networks (colors of the FC states) in the top
+% right corner, in the same view
+rows_reference = Plot_Yeo_reference(L,cortex_dir,scortex);
+
 if plot_FO
     % Legend of the fractional occupancy plots
     Pyramid_legend(L,{['Fractional occupancy (mean ' char(177) ' SEM over ' stats_level 's)'], ...
                       ['of ' strjoin(cond,', ') ' (left to right)'], ...
-                      ['Colors: ' sig_desc]},rangeK);
+                      ['Colors: ' sig_desc]},rangeK,rows_reference+0.3);
     save_name = ['Centroid_Pyramid_' regexprep(stat_tag,'[^a-zA-Z0-9_-]','_') '_' cortex_dir];
 else
     save_name = ['Centroid_Pyramid_' cortex_dir];

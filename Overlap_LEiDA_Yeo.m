@@ -1,4 +1,4 @@
-function [dice_V_yeo7,overlap_yeo7,dice_max] = Overlap_LEiDA_Yeo(parcellation,n_areas,centroids,rangeK,relative_threshold,min_dice)
+function [dice_V_yeo7,overlap_yeo7,dice_max,frac_V_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,centroids,rangeK,relative_threshold,min_dice,frac_threshold)
 %
 % Overlap between the LEiDA centroids (FC states) and the 7 resting-state
 % networks of Yeo et al. (2011), measured with a weighted Dice coefficient
@@ -14,13 +14,19 @@ function [dice_V_yeo7,overlap_yeo7,dice_max] = Overlap_LEiDA_Yeo(parcellation,n_
 % Subcortical and cerebellar voxels (labels 8 and 9 of V_Yeo7) are not
 % considered, as they are not part of the 7 networks.
 %
-% Coarse parcels limit how well a FC state can overlap some networks (e.g.
-% with the first 90 areas of AAL116 the Dorsal Attention network cannot
-% reach a Dice of 0.3). Therefore, each FC state is assigned to the network
-% with the largest weighted Dice only if this Dice is at least
-% relative_threshold times the largest Dice that any set of parcels of the
-% parcellation can reach for that network (dice_max), and at least
-% min_dice.
+% Each FC state is assigned to a network (and colored with it) if:
+%   1) its weighted Dice with the network of largest Dice is at least
+%      relative_threshold times the largest Dice that any set of parcels of
+%      the parcellation can reach for that network (dice_max; coarse
+%      parcels limit the overlap with some networks), and at least
+%      min_dice; or otherwise
+%   2) at least frac_threshold of the FC state (weighted, over all its
+%      voxels in the brain) lies within one network. The Dice coefficient
+%      is low when a FC state is much smaller than the network (e.g. a few
+%      occipital parcels inside the Visual network), although the state is
+%      clearly part of it; this criterion assigns such focal states.
+% FC states mostly outside the 7 cortical networks (e.g. subcortical)
+% are not assigned (shown in black).
 %
 % INPUT:
 % parcellation        parcellation used to segment the brain (atlas in
@@ -30,6 +36,8 @@ function [dice_V_yeo7,overlap_yeo7,dice_max] = Overlap_LEiDA_Yeo(parcellation,n_
 % rangeK              range of clustering solutions
 % relative_threshold  minimum Dice relative to dice_max (default 0.4)
 % min_dice            minimum Dice (default 0.15)
+% frac_threshold      minimum fraction of the FC state within a network
+%                     (default 0.5)
 %
 % OUTPUT:
 % dice_V_yeo7     (n_K x max(K) x 7) weighted Dice coefficient between each
@@ -38,6 +46,8 @@ function [dice_V_yeo7,overlap_yeo7,dice_max] = Overlap_LEiDA_Yeo(parcellation,n_
 %                 FC state (FC states colored with that network)
 % dice_max        (1 x 7) largest Dice that any set of parcels can reach
 %                 for each network with this parcellation
+% frac_V_yeo7     (n_K x max(K) x 7) fraction of each FC state (weighted)
+%                 within each network
 %
 % Author: Joana Cabral, University of Minho, joanacabral@med.uminho.pt
 %         Miguel Farinha, University of Minho, miguel.farinha@ccabraga.org
@@ -47,6 +57,9 @@ if nargin < 5 || isempty(relative_threshold)
 end
 if nargin < 6 || isempty(min_dice)
     min_dice = 0.15;
+end
+if nargin < 7 || isempty(frac_threshold)
+    frac_threshold = 0.5;
 end
 N_Yeo = 7;
 
@@ -68,6 +81,9 @@ for n = 1:n_areas
 end
 n_vox_parcel = sum(n_vox,2);
 n_vox_net = histcounts(Yeo_vox,0.5:1:N_Yeo+0.5);
+% Number of voxels of each parcel in the whole brain (including voxels
+% outside the 7 cortical networks)
+n_vox_brain = histcounts(double(V_Parcels(V_Parcels > 0 & V_Parcels <= n_areas)),0.5:1:n_areas+0.5)';
 
 % Largest Dice that any set of parcels can reach for each network: the
 % best set contains the parcels with the largest fraction of their voxels
@@ -82,6 +98,7 @@ end
 
 dice_V_yeo7 = zeros(length(rangeK),max(rangeK),N_Yeo);
 overlap_yeo7 = false(length(rangeK),max(rangeK),N_Yeo);
+frac_V_yeo7 = zeros(length(rangeK),max(rangeK),N_Yeo);
 
 for k = 1:length(rangeK)
     for c = 1:rangeK(k)
@@ -99,9 +116,18 @@ for k = 1:length(rangeK)
         % Weighted Dice coefficient with each network
         dice_V_yeo7(k,c,:) = 2*(w*n_vox)./(w*n_vox_parcel + n_vox_net);
 
-        % Network with the largest overlap, if large enough relative to
+        % Fraction of the FC state within each network
+        frac_V_yeo7(k,c,:) = (w*n_vox)/max(w*n_vox_brain,eps);
+
+        % 1) Network with the largest Dice, if large enough relative to
         % what the parcellation allows
         [max_dice,net] = max(dice_V_yeo7(k,c,:));
-        overlap_yeo7(k,c,net) = max_dice >= relative_threshold*dice_max(net) && max_dice >= min_dice;
+        if max_dice >= relative_threshold*dice_max(net) && max_dice >= min_dice
+            overlap_yeo7(k,c,net) = true;
+        else
+            % 2) Network containing most of the FC state
+            [max_frac,net] = max(frac_V_yeo7(k,c,:));
+            overlap_yeo7(k,c,net) = max_frac >= frac_threshold;
+        end
     end
 end

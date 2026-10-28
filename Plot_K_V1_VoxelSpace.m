@@ -68,7 +68,7 @@ Fig = figure('Position', get(0, 'Screensize'));
 for c = 1:selectedK
     
     % Get the net with which PL state overlaps the most
-    [~, net] = max(dice_V_yeo7(rangeK == selectedK,c,:));
+    [~, net] = max(dice_V_yeo7(rangeK == selectedK,c,:) + 2*overlap_yeo7(rangeK == selectedK,c,:));
     
     % Get the vector representing this centroid
     V_state = zeros(size(MNI10mm_Mask));
