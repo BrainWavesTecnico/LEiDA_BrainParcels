@@ -133,14 +133,17 @@ Condition_column = 'sheet';
 %   patients without vs with migraine attack ('filename'):
 %       Condition_tags = {{'ses-interictal','ses-preictal','ses-postictal'},'ses-ictal'};
 %       Condition_names = {'Non-ictal','Ictal'};
-Condition_tags = {{'ses-interictal','ses-preictal','ses-postictal'},'ses-ictal'};
+%   phases of the migraine cycle in patients ('filename'):
+%       Condition_tags = {'ses-interictal','ses-preictal','ses-ictal','ses-postictal'};
+%       Condition_names = {'Interictal','Pre-ictal','Ictal','Post-ictal'};
+Condition_tags = {'ses-interictal','ses-preictal','ses-ictal','ses-postictal'};
 % Names of the conditions in the figures (same order as Condition_tags).
 % Leave {} to use Condition_tags.
-Condition_names = {'Non-ictal','Ictal'};
+Condition_names = {'Interictal','Pre-ictal','Ictal','Post-ictal'};
 % Name of this study design. The statistics, conditions and figures of the
 % design are also copied to a subfolder Design_<Design_name> of the results
 % folder, so that they are kept when another design is run ('' to skip).
-Design_name = 'NonIctal_vs_Ictal';
+Design_name = 'Migraine_cycle';
 
 % ------------------------------ STATISTICS -------------------------------
 % Differences between conditions are tested with permutation tests:
