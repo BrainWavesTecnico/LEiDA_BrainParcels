@@ -21,25 +21,17 @@ function Plot_K_nodes_in_cortex(data_dir,save_dir,selectedK,parcellation)
 file_cluster = 'LEiDA_Clusters.mat';
 
 % Load required data:
-if isfile([data_dir file_cluster])
-    load([data_dir file_cluster], 'Kmeans_results', 'rangeK');
-end
+load([data_dir file_cluster], 'Kmeans_results', 'rangeK');
 
-% Matrix (selectedK*n_areas) where each row represents one PL state
+% Matrix (selectedK x n_areas) where each row represents one FC state,
+% each scaled by its largest absolute value
 V = Kmeans_results{rangeK == selectedK}.C;
-% Scale each cluster centroid by its maximum value and transpose the matrix
-V = V./max(abs(V));
+V = V./max(abs(V),[],2);
+n_areas = size(V,2);
 clear Kmeans_results
 
-% Get centers of gravity of each brain area from the parcellation provided
-Volume = struct2array(load('ParcelsMNI2mm',['V_' parcellation]));
-sz = size(Volume);
-MNI_coord = zeros(max(Volume(:)),3);
-for n = 1:max(Volume(:))
-    ind_N = find(Volume == n);
-    [X,Y,Z] = ind2sub(sz,ind_N);
-    MNI_coord(n,:) = mean([Y,X,Z]);
-end
+% Centers of the areas
+MNI_coord = Parcel_centers(parcellation,n_areas);
 Brain_Mask = niftiread('MNI152_T1_2mm_brain_mask.nii');
 scortex = smooth3(Brain_Mask > 0);
 
@@ -93,6 +85,6 @@ for c = 1:selectedK
     
 end
 
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_NodesCortex.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_NodesCortex.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_NodesCortex.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_NodesCortex']);

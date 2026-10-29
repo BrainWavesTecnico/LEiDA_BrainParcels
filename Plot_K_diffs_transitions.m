@@ -106,6 +106,6 @@ for s_ind = 1:length(subplot_indices)
     
     sgtitle([{'Two-sided {\itp}-value'},{'State-to-state transition probability'}],'Fontsize',14,'FontWeight','bold') 
 end
-saveas(Fig, fullfile(data_dir, ['K' num2str(selectedK) '_TransitionsDifferences.png']),'png');
+Save_png(Fig, fullfile(data_dir, ['K' num2str(selectedK) '_TransitionsDifferences.png']));
 saveas(Fig, fullfile(data_dir, ['K' num2str(selectedK) '_TransitionsDifferences.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_TransitionsDifferences']);

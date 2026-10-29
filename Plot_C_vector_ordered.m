@@ -77,6 +77,6 @@ for k = 1:length(Vo)
     title(['PL state ' num2str(centroid)],'Fontsize',12)
 end
 
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_VectorOrdered.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_VectorOrdered.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_VectorOrdered.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) 'C' num2str(centroid) '_VectorOrdered']);

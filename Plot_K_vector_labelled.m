@@ -65,6 +65,6 @@ ax.XAxis.FontSize = 10;
 grid on
 title(['PL state ' num2str(c)],'Fontsize',12)
 
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_VectorLabels.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_VectorLabels.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) 'C' num2str(centroid) '_VectorLabels.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) 'C' num2str(centroid) '_VectorLabels']);

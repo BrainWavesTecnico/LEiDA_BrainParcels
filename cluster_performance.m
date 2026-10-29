@@ -104,7 +104,7 @@ ylabel(ax3,'CH index','Fontsize',12);
 box off;
 xlabel('Number of clusters','Fontsize',12);
 
-saveas(Fig, fullfile(data_dir, 'ClusterPerformance.png'),'png');
+Save_png(Fig, fullfile(data_dir, 'ClusterPerformance.png'));
 saveas(Fig, fullfile(data_dir, 'ClusterPerformance.fig'),'fig');
 disp('- Plot successfully saved as ClusterPerformance');
 

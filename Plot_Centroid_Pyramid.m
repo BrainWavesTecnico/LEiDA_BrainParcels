@@ -1,12 +1,13 @@
-function Plot_Centroid_Pyramid(data_dir,cond,parcellation,n_areas,cortex_dir,stat_of_interest)
+function Plot_Centroid_Pyramid(data_dir,cond,parcellation,n_areas,cortex_dir,stat_of_interest,design_dir)
 %
 % Plot of the rendered centroids on cortical space and overlap with Yeo
 % functional brain networks (Yeo et al. 2011). If the fractional occupancy
 % statistics are available (LEiDA_Stats_FracOccup.mat), the mean +- SEM
 % fractional occupancy of each condition is plotted next to each brain, and
 % the error bars are colored according to the significance of the
-% difference between the pair of conditions stat_of_interest: dark red
-% p<0.05, dark green p<0.05/K, dark blue p<0.05/sum(rangeK)
+% difference between the pair of conditions stat_of_interest, or between
+% any pair of conditions: dark red p<0.05, dark green p<0.05/K, dark blue
+% p<0.05/sum(rangeK)
 %
 % INPUT:
 % data_dir      directory where the centroids obtained for each clustering
@@ -19,7 +20,14 @@ function Plot_Centroid_Pyramid(data_dir,cond,parcellation,n_areas,cortex_dir,sta
 %               ([] to use the number of areas of the centroids)
 % cortex_dir    direction of observation of the rendering of the FC states
 % stat_of_interest  index of the pair of conditions whose p-values are
-%               shown (pairs ordered 1-2, 1-3, ..., 2-3, ...; default 1)
+%               shown (pairs ordered 1-2, 1-3, ..., 2-3, ...), or 'any'
+%               to color the states with a significant difference between
+%               any pair of conditions: the smallest p-value over all
+%               pairs, Bonferroni-corrected for the number of pairs.
+%               Default: 1 with 2 conditions, 'any' with more
+% design_dir    directory with the statistics of the study design
+%               (LEiDA_Stats_FracOccup.mat), where the figure is saved
+%               (default data_dir)
 %
 % OUTPUT:
 % Fig           FC states rendered on a transparent cortex with their
@@ -41,6 +49,9 @@ end
 
 % Load required data:
 load([data_dir file_clusters],'Kmeans_results', 'rangeK');
+if nargin < 7 || isempty(design_dir)
+    design_dir = data_dir;
+end
 
 if isempty(n_areas)
     n_areas = size(Kmeans_results{1}.C,2);
@@ -51,43 +62,48 @@ if n_areas > N_parcels
     return
 end
 
-if nargin < 6 || isempty(stat_of_interest)
-    stat_of_interest = 1;
-end
-
 % Number of conditions of the experiment
 n_Cond = numel(cond);
 
+if nargin < 6 || isempty(stat_of_interest)
+    if n_Cond > 2
+        stat_of_interest = 'any';
+    else
+        stat_of_interest = 1;
+    end
+end
+
 % Fractional occupancy statistics (output from LEiDA_stats_FracOccup.m)
 file_FracOccup = 'LEiDA_Stats_FracOccup.mat';
-plot_FO = n_Cond >= 2 && isfile([data_dir file_FracOccup]);
+plot_FO = n_Cond >= 2 && isfile([design_dir file_FracOccup]);
 if plot_FO
-    load([data_dir file_FracOccup], 'P', 'P_pval2sided', 'Index_Conditions', 'Subjects', 'stats_level');
+    load([design_dir file_FracOccup], 'P', 'P_pval2sided', 'Index_Conditions', 'Subjects', 'stats_level');
     if ~exist('stats_level','var')
         stats_level = 'scan';
     end
 
-    % Pair of conditions whose p-values are shown
-    % (pairs ordered as in LEiDA_compare_conditions: 1-2, 1-3, ..., 2-3, ...)
+    % Pairs of conditions (ordered as in LEiDA_compare_conditions: 1-2,
+    % 1-3, ..., 2-3, ...) and p-values shown
     [cond2,cond1] = find(triu(ones(n_Cond),1)');
-    stat_tag = [cond{cond1(stat_of_interest)} '-' cond{cond2(stat_of_interest)}];
-    disp(['P-values reported for ' cond{cond1(stat_of_interest)} ' vs ' cond{cond2(stat_of_interest)}])
-    P_pval2sided = reshape(P_pval2sided(stat_of_interest,:,:),size(P,2),size(P,3));
+    n_pairs = numel(cond1);
+    if ischar(stat_of_interest) || isstring(stat_of_interest)
+        % Difference between any pair of conditions: smallest p-value over
+        % all pairs, Bonferroni-corrected for the number of pairs
+        stat_tag = strjoin(cond,'-');
+        sig_desc = ['any pair of ' strjoin(cond,', ') ', smallest p over ' num2str(n_pairs) ...
+                    ' pairs x ' num2str(n_pairs)];
+        P_pval2sided = reshape(min(min(P_pval2sided,[],1)*n_pairs,1),size(P,2),size(P,3));
+    else
+        stat_tag = [cond{cond1(stat_of_interest)} '-' cond{cond2(stat_of_interest)}];
+        sig_desc = [cond{cond1(stat_of_interest)} ' vs ' cond{cond2(stat_of_interest)}];
+        P_pval2sided = reshape(P_pval2sided(stat_of_interest,:,:),size(P,2),size(P,3));
+    end
+    disp(['P-values reported for ' sig_desc])
 
     % Mean and SEM of the fractional occupancy in each condition (over
     % subjects, averaging the scans of each subject, if stats_level is
     % 'subject', as in the statistical tests)
-    mean_P = zeros(n_Cond,size(P,2),size(P,3));
-    sem_P = zeros(n_Cond,size(P,2),size(P,3));
-    for j = 1:n_Cond
-        P_j = reshape(P(Index_Conditions == j,:,:),nnz(Index_Conditions == j),[]);
-        if strcmpi(stats_level,'subject')
-            [~,~,g] = unique(Subjects(Index_Conditions == j));
-            P_j = splitapply(@(x) mean(x,1),P_j,g);
-        end
-        mean_P(j,:,:) = reshape(mean(P_j,1),size(P,2),size(P,3));
-        sem_P(j,:,:) = reshape(std(P_j,0,1)/sqrt(size(P_j,1)),size(P,2),size(P,3));
-    end
+    [mean_P,sem_P] = FracOccup_mean_sem(P,Index_Conditions,Subjects,stats_level,n_Cond);
     % Two subplots per FC state: brain and fractional occupancy
     n_cols = 2*rangeK(end);
 else
@@ -100,18 +116,14 @@ disp(' ')
 % Compute the overlap between cluster centroids obtained for each value of
 % K and the resting-state networks defined by Yeo et al. 2011
 disp('Computing overlap of centroids (PL states) with Yeo resting state networks')
-[cc_V_yeo7, p_V_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
+[dice_V_yeo7, overlap_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
 
 % Colors of the 7 Yeo et al. (2011) networks (defined in Yeo_colors.m)
 YeoColor = Yeo_colors;
 
-% Colors of the significance levels: p<0.05, p<0.05/K and p<0.05/sum(K)
-darkRed = [0.6, 0, 0];
-darkGreen = [0.3, 0.5, 0];
-darkBlue = [0.07, 0.62, 1.00];
-
 % LEiDA networks colored according to closest RSN
-Volume = struct2array(load('ParcelsMNI2mm',['V_' parcellation])); 
+Atlas = Load_atlas(parcellation);
+Volume = Atlas.V; 
 
 Brain_Mask = niftiread('MNI152_T1_2mm_brain_mask.nii');
 scortex = smooth3(Brain_Mask > 0);
@@ -120,6 +132,8 @@ scortex = smooth3(Brain_Mask > 0);
 disp(' ')
 disp(['Rendering the centroids (using ' cortex_dir '):'])
 Fig = figure('Position', get(0, 'Screensize'));
+% One row per K (plus space at the bottom for labels)
+L = Pyramid_layout(length(rangeK),n_cols);
 for k = 1:length(rangeK)
     
     % Matrix with the cluster centroids for a given K
@@ -135,7 +149,8 @@ for k = 1:length(rangeK)
         end
         %V = round(V*1e2)/1e2;
         
-        [~,net] = max(cc_V_yeo7(k,Centroid,:));
+        % Network assigned to the FC state (if any; see Overlap_LEiDA_Yeo)
+        [~,net] = max(dice_V_yeo7(k,Centroid,:) + 2*overlap_yeo7(k,Centroid,:));
         
         Centroid_Vol = zeros(size(Volume));
         
@@ -146,9 +161,9 @@ for k = 1:length(rangeK)
         
         % View networks
         if plot_FO
-            subplot_tight(length(rangeK),n_cols,2*Centroid-1+(k-1)*n_cols,0.01)
+            Pyramid_axes(L,k,2*Centroid-1,1,[0.05 0.05]);
         else
-            subplot_tight(length(rangeK),n_cols,Centroid+(k-1)*n_cols,0.008)
+            Pyramid_axes(L,k,Centroid,1,[0.05 0.05]);
         end
              
         hold on
@@ -157,7 +172,7 @@ for k = 1:length(rangeK)
         reducepatch(cortexpatch,0.01);
         isonormals(scortex,cortexpatch);
         
-        if p_V_yeo7(k,Centroid,net) < 0.05/rangeK(k) 
+        if overlap_yeo7(k,Centroid,net) 
             patch(isosurface(sregion,0.3), 'FaceColor', YeoColor(net,:), 'EdgeColor', 'none') %'FaceAlpha', V(n))
         else
             % Color in Black if no significant overlap with any of the Yeo resting-state networks
@@ -184,41 +199,42 @@ for k = 1:length(rangeK)
         % next to the brain, colored by the significance of the difference:
         % p<0.05, p<0.05/K, p<0.05/sum(rangeK)
         if plot_FO
-            pval = P_pval2sided(k,Centroid);
-            if pval <= 0.05/sum(rangeK)
-                sig_color = darkBlue;
-            elseif pval <= 0.05/rangeK(k)
-                sig_color = darkGreen;
-            elseif pval <= 0.05
-                sig_color = darkRed;
-            else
-                sig_color = 'k';
-            end
+            sig_color = Significance_color(P_pval2sided(k,Centroid),rangeK(k),rangeK);
 
             % Fractional occupancy of each condition (error bars without bars)
-            subplot_tight(length(rangeK),n_cols,2*Centroid+(k-1)*n_cols,0.01)
+            Pyramid_axes(L,k,2*Centroid,1,[0.2 0.15]);
             errorbar(mean_P(:,k,Centroid),sem_P(:,k,Centroid),'_','MarkerSize',2,'LineStyle','none',...
                      'Color',sig_color,'CapSize',4,'LineWidth',1);
-            set(gca,'color','none')
-            set(gca,'XTick',1:n_Cond,'XTickLabel','','YTick',[])
+            set(gca,'color','none','YTick',[],'XTick',1:n_Cond,'XTickLabel','','Fontsize',6,'TickLabelInterpreter','none')
+            % Names of the conditions under the bottom row
+            if k == length(rangeK)
+                set(gca,'XTickLabel',cond)
+                xtickangle(90)
+            end
             xlim([.4 n_Cond+.6])
             box off
         end
     end
 end
 
+% Labels of the rows (K) and of the FC states (c)
+Pyramid_labels(L,rangeK,n_cols/rangeK(end));
+
+% Reference of the 7 Yeo networks (colors of the FC states) in the top
+% right corner, in the same view
+rows_reference = Plot_Yeo_reference(L,cortex_dir,scortex);
+
 if plot_FO
     % Legend of the fractional occupancy plots
-    annotation('textbox',[0.005 0 0.9 0.025],'EdgeColor','none','Interpreter','none','FontSize',10,...
-        'String',['Fractional occupancy (mean ' char(177) ' SEM over ' stats_level 's) of ' strjoin(cond,', ') ...
-                  ' (left to right). Significance (' cond{cond1(stat_of_interest)} ' vs ' ...
-                  cond{cond2(stat_of_interest)} '): dark red p<0.05, dark green p<0.05/K, dark blue p<0.05/' num2str(sum(rangeK))])
+    Pyramid_legend(L,{['Fractional occupancy (mean ' char(177) ' SEM over ' stats_level 's)'], ...
+                      ['of ' strjoin(cond,', ') ' (left to right)'], ...
+                      ['Colors: ' sig_desc]},rangeK,rows_reference+0.3);
     save_name = ['Centroid_Pyramid_' regexprep(stat_tag,'[^a-zA-Z0-9_-]','_') '_' cortex_dir];
 else
     save_name = ['Centroid_Pyramid_' cortex_dir];
 end
-saveas(Fig, fullfile(data_dir, [save_name '.png']),'png');
-saveas(Fig, fullfile(data_dir, [save_name '.fig']),'fig');
+Save_png(Fig, fullfile(design_dir, [save_name '.png']));
+saveas(Fig, fullfile(design_dir, [save_name '.fig']),'fig');
 disp(['- Plot successfully saved as ' save_name]);
 
 disp(' ')

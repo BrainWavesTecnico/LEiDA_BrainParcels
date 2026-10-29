@@ -1,4 +1,4 @@
-function LEiDA_stats_FracOccup(data_dir,Index_Conditions,cond,pair,n_permutations,n_bootstraps,stats_level)
+function LEiDA_stats_FracOccup(data_dir,Index_Conditions,cond,pair,n_permutations,n_bootstraps,stats_level,save_dir)
 %
 % For each clustering solution compute the fractional occupancy of each FC
 % state for all scans. Perform permutation tests to check for differences
@@ -17,6 +17,8 @@ function LEiDA_stats_FracOccup(data_dir,Index_Conditions,cond,pair,n_permutation
 %                   interval of the effect size (0 to skip)
 % stats_level       'subject' (default): average the scans of each subject
 %                   in each condition; 'scan': each scan is independent
+% save_dir          directory to save LEiDA_Stats_FracOccup.mat (default
+%                   data_dir)
 %
 % OUTPUT (saved in LEiDA_Stats_FracOccup.mat):
 % P             (n_scans x n_K x max(K)) fractional occupancy of each FC
@@ -34,6 +36,9 @@ function LEiDA_stats_FracOccup(data_dir,Index_Conditions,cond,pair,n_permutation
 
 if nargin < 7 || isempty(stats_level)
     stats_level = 'subject';
+end
+if nargin < 8 || isempty(save_dir)
+    save_dir = data_dir;
 end
 
 % File with leading eigenvectors (output from LEiDA_data.m)
@@ -98,7 +103,7 @@ paired_test = results.paired;
 save_file = 'LEiDA_Stats_FracOccup.mat';
 
 % Save K-means clustering solutions results:
-save(fullfile(data_dir,save_file),'P','P_pval','P_pval2sided','P_tstat','effectsize',...
+save(fullfile(save_dir,save_file),'P','P_pval','P_pval2sided','P_tstat','effectsize',...
      'effectsize_signed','effectsize_ci','n_obs','cond','rangeK','file_cluster','file_V1',...
      'Index_Conditions','Subjects','pair','paired_test','stats_level','n_permutations','n_bootstraps')
 

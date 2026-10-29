@@ -33,7 +33,10 @@ V = V'./max(abs(V'));
 n_areas = size(V,1);
 
 % LEiDA networks colored according to closest RSN
-Volume = struct2array(load('ParcelsMNI2mm',['V_' parcellation]));
+Atlas = Load_atlas(parcellation);
+Volume = Atlas.V;
+% Only the areas considered
+Volume(Volume > n_areas) = 0;
 Brain_Mask = niftiread('MNI152_T1_2mm_brain_mask.nii');
 scortex = smooth3(Brain_Mask > 0);
 
@@ -42,7 +45,7 @@ scortex = smooth3(Brain_Mask > 0);
 
 % Compute the overlap between cluster centroids obtained for each value of
 % K and the resting-state networks defined by Yeo et al. 2011
-[cc_V_yeo7, p_V_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
+[dice_V_yeo7, overlap_yeo7] = Overlap_LEiDA_Yeo(parcellation,n_areas,Kmeans_results,rangeK);
 clear Kmeans_results
 
 disp(' ');
@@ -51,7 +54,7 @@ Fig = figure('Position', get(0, 'Screensize'));
 
 for c = 1:selectedK
     
-    [~, net] = max(cc_V_yeo7(rangeK == selectedK,c,:));
+    [~, net] = max(dice_V_yeo7(rangeK == selectedK,c,:) + 2*overlap_yeo7(rangeK == selectedK,c,:));
     
     % First Plot view from top
     if selectedK <= 10
@@ -76,19 +79,19 @@ for c = 1:selectedK
             region_Vol = Volume == n_pos(region); % 3D volume with 1 only in the voxels of that area
             sregion = smooth3(region_Vol > 0);
             
-            if p_V_yeo7(rangeK == selectedK,c,net) < 0.05/selectedK
+            if overlap_yeo7(rangeK == selectedK,c,net)
                 patch(isosurface(sregion,0.3), 'FaceColor', YeoColor(net,:), 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
             else
                 patch(isosurface(sregion,0.3), 'FaceColor', 'k', 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
             end
         end
     else % Plot of the global mode with "gray/transparent" color
-        region_Vol = Volume > 0 & Volume <= 90; % 3D volume with 1 only in the voxels of that area
+        region_Vol = Volume > 0; % 3D volume with 1 only in the voxels of that area
         sregion = smooth3(region_Vol > 0);
         patch(isosurface(sregion,0.3), 'FaceColor', [.6 .6 .6], 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
     end
     
-    if p_V_yeo7(rangeK == selectedK,c,net) < 0.05/selectedK
+    if overlap_yeo7(rangeK == selectedK,c,net)
         title({['PL state ' num2str(c), newline, Yeo_names{net}]}, 'Fontsize', 12) %,Yeo_names{c}})
     elseif numel(n_pos) == 0
         title({['PL state ' num2str(c), newline, 'Global Mode']}, 'Fontsize', 12) %,Yeo_names{c}})
@@ -124,14 +127,14 @@ for c = 1:selectedK
             region_Vol = Volume == n_pos(region); % 3D volume with 1 only in the voxels of that area
             sregion = smooth3(region_Vol > 0);
             
-            if p_V_yeo7(rangeK == selectedK,c,net) < 0.05/selectedK
+            if overlap_yeo7(rangeK == selectedK,c,net)
                 patch(isosurface(sregion,0.3), 'FaceColor', YeoColor(net,:), 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
             else
                 patch(isosurface(sregion,0.3), 'FaceColor', 'k', 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
             end
         end
     else
-        region_Vol = Volume > 0 & Volume <= 90; % 3D volume with 1 only in the voxels of that area
+        region_Vol = Volume > 0; % 3D volume with 1 only in the voxels of that area
         sregion = smooth3(region_Vol > 0);
         patch(isosurface(sregion,0.3), 'FaceColor', [.6 .6 .6], 'EdgeColor', 'none') %,'FaceAlpha', V(n_pos(region),c))
     end
@@ -145,6 +148,6 @@ for c = 1:selectedK
     
 end
 
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_3Dbrain.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_3Dbrain.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_3Dbrain.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_3Dbrain']);

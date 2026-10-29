@@ -90,7 +90,7 @@ xlim([2 Tmax-1])
 ylim([-ymax ymax])
 xticks(2:25:Tmax-1)
 
-saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_ClusterBlocks.png']),'png');
+Save_png(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_ClusterBlocks.png']));
 saveas(Fig, fullfile(save_dir, ['K' num2str(selectedK) '_ClusterBlocks.fig']),'fig');
 disp(['- Plot successfully saved as K' num2str(selectedK) '_ClusterBlocks']);
 

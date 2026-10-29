@@ -26,7 +26,16 @@ function Plot_FracOccup(data_dir)
 file_P = 'LEiDA_Stats_FracOccup.mat';
 
 % Load required data:
-load([data_dir file_P],'cond', 'P', 'P_pval2sided', 'Index_Conditions', 'effectsize', 'rangeK');
+load([data_dir file_P],'cond', 'P', 'P_pval2sided', 'Index_Conditions', 'effectsize', 'rangeK', ...
+     'Subjects', 'stats_level');
+if ~exist('stats_level','var')
+    stats_level = 'scan';
+    Subjects = (1:numel(Index_Conditions))';
+end
+
+% Mean and SEM of the fractional occupancy in each condition, over the
+% same observations used in the tests (subjects or scans)
+[mean_P,sem_P] = FracOccup_mean_sem(P,Index_Conditions,Subjects,stats_level,numel(cond));
 
 % Number of conditions of the experiment
 n_Cond = size(cond,2);
@@ -64,7 +73,7 @@ for cond1 = 1:n_Cond-1
 end
 
 % Plot of two-sided p-values from fractional occupancy hypothesis tests
-Fig1 = figure('Position', [307   323   572   344]);
+Fig1 = figure('Position', [100   100   1144   688]);
 disp(' ')
 disp('Plotting two-sided p-values from hypothesis (permutation) tests:')
 for s_ind = 1:length(subplot_indices)
@@ -111,50 +120,25 @@ for s_ind = 1:length(subplot_indices)
     ylim([10.^(-7.5) 1])
     set(gca,'YTick',10.^(-7:2:0))
 end
-saveas(Fig1, fullfile(data_dir, 'FracOccup_pvalues.png'),'png');
+Save_png(Fig1, fullfile(data_dir, 'FracOccup_pvalues.png'));
 saveas(Fig1, fullfile(data_dir, 'FracOccup_pvalues.fig'),'fig');
 disp('- Plot successfully saved as FracOccup_pvalues');
 
-% Barplot of mean fractional occupancy for each condition across K (all)
+% Barplot of mean fractional occupancy for each condition across K (all),
+% colored if there is a significant difference between any pair of
+% conditions (smallest p-value over all pairs, Bonferroni-corrected for the
+% number of pairs)
 if n_Cond > 2
+    n_compare = n_Cond*(n_Cond-1)/2;
+    P_pval_any = reshape(min(min(P_pval2sided,[],1)*n_compare,1),size(P,2),size(P,3));
     Fig2 = figure('Position', get(0, 'Screensize'));
     disp(' ')
     disp('Plotting barplot of the mean fractional occupancy across conditions and K:')
-    for k = 1:length(rangeK)
-
-        % disp(['- ' num2str(rangeK(k)) ' FC states'])
-
-        for c = 1:rangeK(k)
-
-            subplot_tight(length(rangeK),rangeK(end),c+(k-1)*rangeK(end),0.015)
-
-            hold on
-
-            P_cond = cell(1,n_Cond);
-            mean_P_cond = zeros(1,n_Cond);
-            ste = zeros(1,n_Cond);
-            for j = 1:n_Cond
-                P_cond{j} = P(Index_Conditions == j,k,c);
-                mean_P_cond(j) = nanmean(P(Index_Conditions == j,k,c));
-                ste(j) = std(P(Index_Conditions == j,k,c))/sqrt(numel(P(Index_Conditions == j,k,c)));
-            end
-
-            bar(1:n_Cond,mean_P_cond,'EdgeColor','k','LineWidth',0.8,'FaceColor','none')
-            hold on
-            errorbar(mean_P_cond,ste,'LineStyle','none','Color','k','CapSize',5,'LineWidth',0.4);
-            if k == length(rangeK)
-                set(gca,'XTick',1:n_Cond,'XTickLabel',cond,'Fontsize',6,'TickLabelInterpreter','none')
-                % xtickangle(45)
-            else
-                set(gca,'XTick',1:n_Cond,'XTickLabel',[],'Fontsize',6,'TickLabelInterpreter','none')
-            end
-            set(gca,'color','none')
-
-            hold off
-            box off
-        end
-    end
-    saveas(Fig2, fullfile(data_dir, 'FracOccup_Barplot_Allconditions.png'),'png');
+    L = Plot_bar_pyramid(mean_P,sem_P,P_pval_any,rangeK,cond,1:n_Cond);
+    Pyramid_legend(L,{['Fractional occupancy (mean ' char(177) ' SEM over ' stats_level 's)'], ...
+                      ['Colors: difference between any pair of ' strjoin(cond,', ')], ...
+                      ['(smallest p over ' num2str(n_compare) ' pairs x ' num2str(n_compare) ')']},rangeK);
+    Save_png(Fig2, fullfile(data_dir, 'FracOccup_Barplot_Allconditions.png'));
     saveas(Fig2, fullfile(data_dir, 'FracOccup_Barplot_Allconditions.fig'),'fig');
     disp('- Plot successfully saved as FracOccup_Barplot_Allconditions');
 end
@@ -165,42 +149,10 @@ disp('Plotting barplots of mean fractional occupancy for each pair of conditions
 n_compare = n_Cond*(n_Cond-1)/2;
 for i = 1:n_compare
     Fig3 = figure('Position', get(0, 'Screensize'),'Name', ['Occupancy ' cond{condRow(i)} ' vs ' cond{condCol(i)}]);
-    for k = 1:length(rangeK)
-        for c = 1:rangeK(k)
-            
-            subplot_tight(length(rangeK),rangeK(end),c+(k-1)*rangeK(end),0.015)
-            
-            hold on
-            
-            P_cond1 = squeeze(P(Index_Conditions == condRow(i),k,c))';  % Vector containing Prob of c in cond1
-            P_cond2 = squeeze(P(Index_Conditions == condCol(i),k,c))';  % Vector containing Prob of c in cond2
-            
-            if P_pval2sided(i,k,c) > (0.05/rangeK(k))
-                bar(1:2,[mean(P_cond1) mean(P_cond2)],'EdgeColor','k','LineWidth',0.8,'FaceColor','none')
-            end
-            if P_pval2sided(i,k,c) <= (0.05/rangeK(k)) && P_pval2sided(i,k,c) > (0.05/sum(rangeK))
-                bar(1:2,[mean(P_cond1) mean(P_cond2)],'EdgeColor',darkGreen,'LineWidth',0.8,'FaceColor','none')
-            end
-            if P_pval2sided(i,k,c) <= (0.05/sum(rangeK))
-                bar(1:2,[mean(P_cond1) mean(P_cond2)],'EdgeColor',darkBlue,'LineWidth',0.8,'FaceColor','none')
-            end
-        
-            hold on
-            errorbar([mean(P_cond1) mean(P_cond2)],[std(P_cond1)/sqrt(numel(P_cond1)) std(P_cond2)/sqrt(numel(P_cond2))],...,
-                     'LineStyle','none','Color','k','CapSize',5,'LineWidth',0.4);
-            if k == length(rangeK)
-                set(gca,'XTick',1:2,'XTickLabel',{cond{condRow(i)} cond{condCol(i)}},'Fontsize',6,'TickLabelInterpreter','none')
-                % xtickangle(45)
-            else
-                set(gca,'XTick',1:2,'XTickLabel',[],'Fontsize',6,'TickLabelInterpreter','none')
-            end
-            set(gca,'color','none')
-        
-            hold off
-            box off
-        end
-    end
-    saveas(Fig3, fullfile(data_dir, ['FracOccup_Barplot_' cond{condRow(i)} '_vs_' cond{condCol(i)} '.png']),'png');
+    L = Plot_bar_pyramid(mean_P,sem_P,reshape(P_pval2sided(i,:,:),size(P,2),size(P,3)),rangeK,cond,[condRow(i) condCol(i)]);
+    Pyramid_legend(L,{['Fractional occupancy (mean ' char(177) ' SEM over ' stats_level 's)'], ...
+                      [cond{condRow(i)} ' vs ' cond{condCol(i)}]},rangeK);
+    Save_png(Fig3, fullfile(data_dir, ['FracOccup_Barplot_' cond{condRow(i)} '_vs_' cond{condCol(i)} '.png']));
     saveas(Fig3, fullfile(data_dir, ['FracOccup_Barplot_' cond{condRow(i)} '_vs_' cond{condCol(i)} '.fig']),'fig');
     disp(['- Plot successfully saved as FracOccup_Barplot_' cond{condRow(i)} '_vs_' cond{condCol(i)}]);
 end
@@ -208,7 +160,7 @@ end
 % Plot of Hedge's effect size from fractional occupancy hypothesis tests
 disp(' ')
 disp('Plotting Hedge''s effect size from hypothesis (permutation) tests:')
-Fig4 = figure('Position', [307   323   572   344]);
+Fig4 = figure('Position', [100   100   1144   688]);
 for s_ind = 1:length(subplot_indices)
     
     subplot_ind = subplot_indices(s_ind);
@@ -248,11 +200,45 @@ for s_ind = 1:length(subplot_indices)
     xticks([2 4 6 8 10 12 14 16 18 20])
     xlim([rangeK(1)-1 rangeK(end)+1])
     box off
-    ylim([0 1])
+    % Effect sizes above 1 are shown (not cut at the top of the axes)
+    ylim([0 max(1,ceil(10*max(effectsize(:)))/10)])
     set(gca,'YTick',[0,0.2,0.5,0.8,1])
 end
-saveas(Fig4, fullfile(data_dir, 'FracOccup_effetcsize.png'),'png');
+Save_png(Fig4, fullfile(data_dir, 'FracOccup_effetcsize.png'));
 saveas(Fig4, fullfile(data_dir, 'FracOccup_effetcsize.fig'),'fig');
 disp('- Plot successfully saved as FracOccup_effetcsize');
 
 disp(' ')
+
+end
+
+
+function L = Plot_bar_pyramid(mean_P,sem_P,pval,rangeK,cond,conds)
+%
+% Pyramid of barplots (one row per K, one column per FC state) of the mean
+% +- SEM fractional occupancy of the conditions conds, with the bars colored
+% according to the p-values pval (n_K x max(K))
+
+L = Pyramid_layout(length(rangeK),rangeK(end));
+for k = 1:length(rangeK)
+    for c = 1:rangeK(k)
+        Pyramid_axes(L,k,c,1,[0.35 0.2]);
+        hold on
+        bar(1:numel(conds),mean_P(conds,k,c),'EdgeColor',Significance_color(pval(k,c),rangeK(k),rangeK),...
+            'LineWidth',0.8,'FaceColor','none')
+        errorbar(1:numel(conds),mean_P(conds,k,c),sem_P(conds,k,c),'LineStyle','none','Color','k',...
+                 'CapSize',5,'LineWidth',0.4);
+        set(gca,'XTick',1:numel(conds),'XTickLabel',[],'Fontsize',6,'TickLabelInterpreter','none','color','none')
+        % Names of the conditions under the bottom row
+        if k == length(rangeK)
+            set(gca,'XTickLabel',cond(conds))
+            xtickangle(45)
+        end
+        xlim([0.4 numel(conds)+0.6])
+        hold off
+        box off
+    end
+end
+% Labels of the rows (K) and of the FC states (c)
+Pyramid_labels(L,rangeK,1);
+end
